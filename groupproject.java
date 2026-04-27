@@ -29,3 +29,12 @@ class ObbyGame extends JPanel implements Runnable {
         }
     }
 }
+
+private int playerX = 100, playerY = 100;
+
+@Override
+protected void paintComponent(Graphics g) {
+    super.paintComponent(g);
+    g.setColor(Color.CYAN);
+    g.fillRect(playerX, playerY, 32, 32);
+}
