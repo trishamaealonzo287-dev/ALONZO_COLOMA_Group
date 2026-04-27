@@ -39,9 +39,13 @@ class ObbyGame extends JPanel implements Runnable {
         gameThread = new Thread(this);
         gameThread.start();
     }
+
     @Override
     public void run() {
         while (true) {
+            
+            
+
             repaint();
             try { 
                 Thread.sleep(16); 
