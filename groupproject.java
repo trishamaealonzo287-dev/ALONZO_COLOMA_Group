@@ -1,8 +1,8 @@
-import javax.swing.*;
 import java.awt.*;
+import javax.swing.*;
 
-public class ObbyGame extends JPanel {
-    public ObbyGame() {
+public class groupproject extends JPanel {
+    public groupproject() {
         this.setPreferredSize(new Dimension(800, 600));
         this.setBackground(Color.BLACK);
     }
@@ -12,5 +12,20 @@ public class ObbyGame extends JPanel {
         frame.add(new ObbyGame());
         frame.pack();
         frame.setVisible(true);
+    }
+}
+
+class ObbyGame extends JPanel implements Runnable {
+    private Thread gameThread;
+    public void start() {
+        gameThread = new Thread(this);
+        gameThread.start();
+    }
+    @Override
+    public void run() {
+        while (true) {
+            repaint();
+            try { Thread.sleep(16); } catch (Exception e) {}
+        }
     }
 }
