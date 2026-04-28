@@ -3,17 +3,85 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Super Colonzo World - Random Powerups</title>
+<title>Super Colonzo World - Responsive UI</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0a1a;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:'Courier New',monospace;overflow:hidden}
-canvas{display:block;image-rendering:pixelated;border:3px solid #5533ff;box-shadow:0 0 40px #5533ff88,0 0 80px #3311aa44}
-#ui{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+html,body{
+  width:100%;
+  height:100%;
+  background:#0a0a1a;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  font-family:'Courier New',monospace;
+  overflow:hidden
+}
+#gameContainer{
+  position:relative;
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#000;
+}
+canvas{
+  display:block;
+  image-rendering:pixelated;
+  border:3px solid #5533ff;
+  box-shadow:0 0 40px #5533ff88,0 0 80px #3311aa44;
+  max-width:100%;
+  max-height:100%;
+  width:auto;
+  height:auto;
+}
+#ui{
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+}
 </style>
 </head>
 <body>
-<canvas id="c" width="800" height="560"></canvas>
+<div id="gameContainer">
+  <canvas id="c"></canvas>
+  <div id="ui"></div>
+</div>
+
 <script>
+// ---- RESPONSIVE CANVAS SETUP ----
+function setupCanvas(){
+  const container=document.getElementById('gameContainer');
+  const canvas=document.getElementById('c');
+  
+  // Base resolution
+  const BASE_W=800;
+  const BASE_H=560;
+  
+  // Calculate scale based on available space
+  const maxW=window.innerWidth*0.98;
+  const maxH=window.innerHeight*0.98;
+  const scaleW=maxW/BASE_W;
+  const scaleH=maxH/BASE_H;
+  const scale=Math.min(scaleW,scaleH,1);
+  
+  canvas.width=BASE_W;
+  canvas.height=BASE_H;
+  canvas.style.width=(BASE_W*scale)+'px';
+  canvas.style.height=(BASE_H*scale)+'px';
+  
+  return scale;
+}
+
+let canvasScale=setupCanvas();
+window.addEventListener('resize',()=>{
+  canvasScale=setupCanvas();
+});
+
 const canvas=document.getElementById('c');
 const ctx=canvas.getContext('2d');
 ctx.imageSmoothingEnabled=false;
@@ -124,20 +192,17 @@ function generateRandomPowerups(spots, seed){
   let powerupTypes=['SPEED','JUMP','SHIELD'];
   let generated=[];
   
-  // Use seed for deterministic randomization
   let rng=function(s){
     let x=Math.sin(s++)*10000;
     return x-Math.floor(x);
   };
   
-  // Shuffle spots using seed
   let shuffledSpots=[...spots];
   for(let i=shuffledSpots.length-1;i>0;i--){
-    let j=Math.floor(rng(seed+i)*( i+1));
+    let j=Math.floor(rng(seed+i)*(i+1));
     [shuffledSpots[i],shuffledSpots[j]]=[shuffledSpots[j],shuffledSpots[i]];
   }
   
-  // Select random number of powerups (2-4 per level)
   let count=2+Math.floor(rng(seed+1000)*3);
   count=Math.min(count,shuffledSpots.length);
   
@@ -146,7 +211,6 @@ function generateRandomPowerups(spots, seed){
     let typeIdx=Math.floor(rng(seed+i*100)*powerupTypes.length);
     let type=powerupTypes[typeIdx];
     
-    // Randomize position within spot using seed
     let offsetX=(rng(seed+i*200)-0.5)*40;
     let offsetY=(rng(seed+i*300)-0.5)*40;
     
@@ -163,7 +227,6 @@ function generateRandomPowerups(spots, seed){
 
 // ---- BACKGROUND ELEMENTS INIT ----
 function initBackgroundElements(){
-  // Stars with varying depths
   stars=[];
   for(let i=0;i<150;i++){
     stars.push({
@@ -177,7 +240,6 @@ function initBackgroundElements(){
     });
   }
 
-  // Dynamic clouds with variation
   bgClouds=[];
   for(let i=0;i<18;i++){
     bgClouds.push({
@@ -192,7 +254,6 @@ function initBackgroundElements(){
     });
   }
 
-  // Floating islands with parallax
   bgIslands=[];
   for(let i=0;i<8;i++){
     bgIslands.push({
@@ -207,7 +268,6 @@ function initBackgroundElements(){
     });
   }
 
-  // Nebula clouds (deep space effect)
   nebulas=[];
   nebulas.push({x:150,y:120,r:100,color:'#2200aa',alpha:0.15});
   nebulas.push({x:900,y:80,r:120,color:'#aa0022',alpha:0.12});
@@ -215,7 +275,6 @@ function initBackgroundElements(){
   nebulas.push({x:300,y:250,r:110,color:'#aa8800',alpha:0.08});
   nebulas.push({x:1100,y:150,r:130,color:'#0088aa',alpha:0.13});
 
-  // Distant mountain ranges
   mountainSeed=frameCount;
   distantMountains=[];
   for(let i=0;i<12;i++){
@@ -276,7 +335,6 @@ function loadLevel(idx){
     platforms:base.platforms,
     goal:base.goal
   };
-  // Generate powerups with seed based on game resets and level
   powerupsInLevel=generateRandomPowerups(base.powerupSpots, gameResetCount*1000+currentLevel*100);
   resetPlayer();
   cameraX=0;
@@ -295,7 +353,6 @@ function resetPlayer(){
 function drawBackground(){
   let bg=levelData?levelData.bg:'#0d1a3a';
   
-  // ===== SKY GRADIENT =====
   let grd=ctx.createLinearGradient(0,0,0,H);
   if(bg==='#0d1a3a'){
     grd.addColorStop(0,'#0a0510');
@@ -318,7 +375,6 @@ function drawBackground(){
   ctx.fillStyle=grd;
   ctx.fillRect(0,0,W,H);
 
-  // ===== DEEP NEBULA BACKGROUND =====
   nebulas.forEach(neb=>{
     ctx.globalAlpha=neb.alpha;
     let grd2=ctx.createRadialGradient(neb.x,neb.y,10,neb.x,neb.y,neb.r);
@@ -332,7 +388,6 @@ function drawBackground(){
   });
   ctx.globalAlpha=1;
 
-  // ===== DISTANT MOUNTAINS =====
   distantMountains.forEach(mt=>{
     let mx=((mt.x-cameraX*mt.parallax)%2400+2400)%2400;
     if(mx>W+mt.w)mx-=2400;
@@ -364,7 +419,6 @@ function drawBackground(){
     ctx.fill();
   });
 
-  // ===== FLOATING ISLANDS =====
   bgIslands.forEach(isl=>{
     let ix=((isl.x-cameraX*isl.parallax)%2400+2400)%2400;
     
@@ -403,7 +457,6 @@ function drawBackground(){
     ctx.globalAlpha=1;
   });
 
-  // ===== STARS FIELD =====
   stars.forEach(s=>{
     let blink=0.3+0.7*Math.sin(s.twinkle+frameCount*s.speed*0.04);
     ctx.globalAlpha=blink*s.brightness;
@@ -414,7 +467,6 @@ function drawBackground(){
   });
   ctx.globalAlpha=1;
 
-  // ===== CLOUDS LAYERS =====
   bgClouds.forEach(c=>{
     let cx=((c.x-cameraX*c.speed*0.25)%2400+2400)%2400;
     
@@ -439,7 +491,6 @@ function drawBackground(){
   });
   ctx.globalAlpha=1;
 
-  // ===== PIXEL GRID OVERLAY =====
   ctx.globalAlpha=0.02;
   ctx.strokeStyle='#88aaff';
   ctx.lineWidth=1;
@@ -457,7 +508,6 @@ function drawBackground(){
   }
   ctx.globalAlpha=1;
 
-  // ===== ATMOSPHERIC LIGHT RAYS =====
   ctx.globalAlpha=0.08;
   ctx.fillStyle='#00ddff';
   for(let ray=0;ray<6;ray++){
@@ -609,7 +659,6 @@ function drawPlayer(){
   ctx.scale(f,1);
   ctx.translate(-14,0);
 
-  // === JETPACK ===
   ctx.fillStyle='#334466';
   ctx.fillRect(6,ay+12,10,18);
   ctx.fillStyle='#556688';ctx.fillRect(8,ay+14,6,6);
@@ -624,7 +673,6 @@ function drawPlayer(){
     ctx.globalAlpha=1;
   }
 
-  // === BODY / SUIT ===
   ctx.fillStyle='#2244aa';
   ctx.fillRect(4,ay+14,20,18);
   ctx.fillStyle='#3366dd';
@@ -633,7 +681,6 @@ function drawPlayer(){
   ctx.fillRect(9,ay+17,6,6);
   ctx.fillStyle='#ffffff88';ctx.fillRect(10,ay+18,2,2);
 
-  // === LEGS ===
   let lkick=walkCycle;
   ctx.fillStyle='#1a3388';
   ctx.fillRect(4,ay+30,8,10+lkick);
@@ -643,7 +690,6 @@ function drawPlayer(){
   ctx.fillRect(13,ay+38-lkick,10,6);
   ctx.fillStyle='#aaccff';ctx.fillRect(3,ay+38+lkick,10,2);
 
-  // === ARMS ===
   let armSwing=walkCycle*0.8;
   ctx.fillStyle='#2244aa';
   ctx.fillRect(-2,ay+16+armSwing,6,12);
@@ -652,7 +698,6 @@ function drawPlayer(){
   ctx.fillRect(-3,ay+26+armSwing,8,6);
   ctx.fillRect(21,ay+26-armSwing,8,6);
 
-  // === HEAD / HELMET ===
   ctx.fillStyle='#1a3388';
   ctx.fillRect(3,ay,22,18);
   ctx.fillStyle='#2255cc';
@@ -663,7 +708,6 @@ function drawPlayer(){
   let antBlinkColor=Math.floor(frameCount/15)%2===0?'#ff4444':'#ff8888';
   ctx.fillStyle=antBlinkColor;ctx.fillRect(15,ay-14,6,4);
 
-  // === VISOR ===
   let visorColor=p.shield>0?'#aa88ff':'#00ddff';
   ctx.fillStyle=visorColor;
   ctx.fillRect(6,ay+4,16,9);
@@ -672,7 +716,6 @@ function drawPlayer(){
   ctx.fillStyle=p.shield>0?'#cc99ff':'#44ffff';
   ctx.fillRect(6,ay+4,16,2);
 
-  // === SHIELD BUBBLE ===
   if(p.shield>0){
     ctx.globalAlpha=0.3+0.2*Math.sin(frameCount*0.15);
     ctx.strokeStyle='#aa88ff';ctx.lineWidth=3;
@@ -682,7 +725,6 @@ function drawPlayer(){
     ctx.globalAlpha=1;
   }
 
-  // === SPEED TRAIL ===
   if(p.speedBoost>0){
     for(let i=1;i<=4;i++){
       ctx.globalAlpha=(0.5-i*0.1);
@@ -713,7 +755,6 @@ function updatePlayer(){
   if(p.speedBoost>0)p.speedBoost--;
   if(p.shield>0)p.shield--;
 
-  // Platform collision
   p.onGround=false;
   levelData.platforms.forEach(plat=>{
     if(rect(p.x,p.y,p.w,p.h,plat.x,plat.y,plat.w,plat.h)){
@@ -737,7 +778,6 @@ function updatePlayer(){
     nextLevel();
   }
 
-  // Powerup collection
   powerupsInLevel.forEach(pu=>{
     if(pu.collected)return;
     if(rect(p.x,p.y,p.w,p.h,pu.x,pu.y,24,24)){
@@ -751,7 +791,6 @@ function updatePlayer(){
     }
   });
 
-  // Fall death
   if(p.y>H+60){
     if(p.shield>0){p.shield=0;p.invincible=80;p.y=300;p.vy=-8;spawnText(p.x,p.y-20,'SHIELD SAVED!','#aa88ff');return;}
     p.lives--;
@@ -770,7 +809,7 @@ function nextLevel(){
   else{loadLevel(currentLevel);}
 }
 
-// ---- JUMP ----
+// ---- INPUT ----
 document.addEventListener('keydown',e=>{
   keys[e.key]=true;
   if(state===STATES.MENU&&(e.key==='Enter'||e.key===' ')){
@@ -804,31 +843,46 @@ document.addEventListener('keyup',e=>{keys[e.key]=false;});
 
 // ---- HUD ----
 function drawHUD(){
+  let padding=12;
+  let heartSize=8;
+  let heartSpacing=20;
+  
+  // Lives - Top Left
   for(let i=0;i<3;i++){
     let alive=i<p.lives;
     ctx.fillStyle=alive?'#ff4444':'#444';
-    let hx=20+i*36,hy=20;
-    ctx.fillRect(hx+4,hy,8,4);ctx.fillRect(hx+16,hy,8,4);
-    ctx.fillRect(hx,hy+4,28,8);ctx.fillRect(hx+2,hy+12,24,4);
-    ctx.fillRect(hx+4,hy+16,20,4);ctx.fillRect(hx+8,hy+20,12,4);
-    ctx.fillRect(hx+10,hy+24,8,4);
+    let hx=padding+i*heartSpacing,hy=padding;
+    ctx.fillRect(hx+2,hy,4,2);ctx.fillRect(hx+8,hy,4,2);
+    ctx.fillRect(hx,hy+2,14,4);ctx.fillRect(hx+1,hy+6,12,2);
+    ctx.fillRect(hx+2,hy+8,10,2);ctx.fillRect(hx+4,hy+10,6,2);
+    ctx.fillRect(hx+5,hy+12,4,2);
     if(alive){
-      ctx.fillStyle='#ff8888';ctx.fillRect(hx+6,hy+2,8,4);
+      ctx.fillStyle='#ff8888';ctx.fillRect(hx+3,hy+1,4,2);
     }
   }
 
-  drawPixelText('WORLD '+(currentLevel+1)+'-'+((currentLevel+1)),W/2-60,16,18,'#ffee44','left');
+  // Level Indicator - Top Center
+  let levelText='LEVEL '+((currentLevel+1));
+  drawPixelText(levelText,W/2,padding,16,'#ffee44','center');
 
+  // Powerup Status - Top Right
   let icons=[];
   if(p.speedBoost>0)icons.push({label:'SPD',color:'#ffcc00',bar:p.speedBoost/POWERUPS.SPEED.duration});
   if(p.shield>0)icons.push({label:'SHD',color:'#aa88ff',bar:p.shield/POWERUPS.SHIELD.duration});
   if(p.hasDoubleJump&&p.doubleJump)icons.push({label:'DBL',color:'#00ffcc',bar:1});
+  
   icons.forEach((ic,i)=>{
-    let ix=W-140+i*60,iy=14;
-    ctx.fillStyle='#000a';ctx.fillRect(ix-4,iy-4,56,36);
-    ctx.fillStyle=ic.color;ctx.fillRect(ix,iy,50,6);
-    ctx.fillStyle='#333';ctx.fillRect(ix+50*ic.bar,iy,50*(1-ic.bar),6);
-    drawPixelText(ic.label,ix+2,iy+10,11,ic.color,'left');
+    let boxW=44;
+    let boxH=24;
+    let ix=W-padding-((icons.length-i)*boxW)-((icons.length-i-1)*4);
+    let iy=padding;
+    
+    ctx.fillStyle='#000a';ctx.fillRect(ix-2,iy-2,boxW+4,boxH+4);
+    ctx.fillStyle=ic.color;ctx.fillRect(ix,iy,boxW-6,4);
+    ctx.fillStyle='#333';ctx.fillRect(ix+(boxW-6)*ic.bar,iy,6*(1-ic.bar),4);
+    ctx.strokeStyle=ic.color;ctx.lineWidth=1;
+    ctx.strokeRect(ix,iy,boxW-6,4);
+    drawPixelText(ic.label,ix+2,iy+6,10,ic.color,'left');
   });
 }
 
@@ -858,39 +912,49 @@ function updateParticles(){
 // ---- MENU ----
 function drawMenu(){
   drawBackground();
+  
+  let centerY=H/2;
   let pulse=0.85+0.15*Math.sin(frameCount*0.05);
+  
   ctx.save();
-  ctx.translate(W/2,H/2-80);ctx.scale(pulse,pulse);
-  ctx.fillStyle='#000c';ctx.fillRect(-260,-50,520,100);
-  ctx.strokeStyle='#5533ff';ctx.lineWidth=3;ctx.strokeRect(-260,-50,520,100);
-  ctx.strokeStyle='#00ddff';ctx.lineWidth=1;ctx.strokeRect(-256,-46,512,92);
-  drawPixelText('SUPER COLONZO WORLD',-220,-28,30,'#ffee44','left');
-  drawPixelText('ADVENTURE',-100,14,22,'#ff8888','left');
+  ctx.translate(W/2,centerY-60);ctx.scale(pulse,pulse);
+  
+  // Title Box
+  ctx.fillStyle='#000c';ctx.fillRect(-220,-50,440,100);
+  ctx.strokeStyle='#5533ff';ctx.lineWidth=3;ctx.strokeRect(-220,-50,440,100);
+  ctx.strokeStyle='#00ddff';ctx.lineWidth=1;ctx.strokeRect(-216,-46,432,92);
+  
+  drawPixelText('SUPER COLONZO',-200,-30,24,'#ffee44','left');
+  drawPixelText('WORLD',-200,0,24,'#ffee44','left');
+  drawPixelText('ADVENTURE',-80,24,16,'#ff8888','left');
+  
   ctx.restore();
 
-  drawPixelText('[ ENTER ] to Start',W/2-100,H/2+30,16,'#aaffee','left');
-  drawPixelText('ARROWS / WASD = Move    SPACE = Jump',W/2-195,H/2+60,13,'#8899aa','left');
-  drawPixelText('Power-ups spawn randomly on each reset!',W/2-185,H/2+82,13,'#88ccff','left');
+  // Instructions
+  let instructY=centerY+40;
+  drawPixelText('[ ENTER ] to Start',W/2-90,instructY,14,'#aaffee','center');
+  drawPixelText('ARROWS/WASD: Move  SPACE: Jump',W/2-140,instructY+22,12,'#8899aa','center');
+  drawPixelText('Power-ups spawn randomly each reset!',W/2-150,instructY+40,12,'#88ccff','center');
+  drawPixelText('Press ESC to return to menu',W/2-120,instructY+56,12,'#88ccff','center');
 
-  ctx.save();ctx.translate(W/2-80,H/2-10);
-  let demoP={x:0,y:0,vx:0,vy:0,onGround:true,facingR:true,invincible:0,speedBoost:0,shield:0,hasDoubleJump:false,doubleJump:true,jumpAnim:0};
-  let saved={...p};
-  Object.assign(p,demoP);
-  cameraX=-(W/2-80);
-  drawPlayer();
-  Object.assign(p,saved);
-  cameraX=saved.x-200;
-  ctx.restore();
-
+  // Powerup Legend - Bottom
   let pvs=Object.entries(POWERUPS);
+  let legendY=H-50;
+  let legendStartX=W/2-(pvs.length*(60+10))/2;
+  
   pvs.forEach(([k,def],i)=>{
-    let lx=W/2-130+i*140,ly=H-80;
-    ctx.fillStyle='#000a';ctx.fillRect(lx-8,ly-8,130,44);
-    ctx.fillStyle=def.color;ctx.fillRect(lx,ly,20,20);
-    ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.strokeRect(lx,ly,20,20);
-    ctx.font='12px serif';ctx.fillStyle='#fff';ctx.textAlign='left';ctx.textBaseline='middle';
-    ctx.fillText(def.icon,lx+4,ly+10);
-    drawPixelText(def.label,lx+24,ly+3,12,def.color,'left');
+    let lx=legendStartX+i*(60+10);
+    let ly=legendY;
+    
+    ctx.fillStyle='#000a';ctx.fillRect(lx-4,ly-4,60+8,48+8);
+    ctx.strokeStyle=def.color;ctx.lineWidth=1;ctx.strokeRect(lx-4,ly-4,60+8,48+8);
+    
+    ctx.fillStyle=def.color;ctx.fillRect(lx,ly,16,16);
+    ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.strokeRect(lx,ly,16,16);
+    ctx.font='12px serif';ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(def.icon,lx+8,ly+8);
+    
+    drawPixelText(def.label,lx+28,ly+2,11,def.color,'left');
   });
 }
 
@@ -898,27 +962,35 @@ function drawMenu(){
 function drawGameOver(){
   drawBackground();
   ctx.fillStyle='#000b';ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='#ff2222';ctx.fillRect(W/2-200,H/2-80,400,140);
-  ctx.strokeStyle='#ff6666';ctx.lineWidth=3;ctx.strokeRect(W/2-200,H/2-80,400,140);
-  drawPixelText('GAME OVER',W/2-130,H/2-60,36,'#fff','left');
-  drawPixelText('[ ENTER ] to return to Menu',W/2-155,H/2+30,15,'#ffaaaa','left');
+  
+  let centerY=H/2;
+  ctx.fillStyle='#ff2222';ctx.fillRect(W/2-160,centerY-60,320,100);
+  ctx.strokeStyle='#ff6666';ctx.lineWidth=2;ctx.strokeRect(W/2-160,centerY-60,320,100);
+  
+  drawPixelText('GAME OVER',W/2,centerY-40,32,'#fff','center');
+  drawPixelText('[ ENTER ] to return to Menu',W/2,centerY+20,13,'#ffaaaa','center');
 }
 
 // ---- WIN ----
 function drawWin(){
   drawBackground();
+  
+  // Confetti
   for(let i=0;i<20;i++){
     ctx.fillStyle=['#ffee44','#ff4488','#44ffcc','#88aaff'][i%4];
     ctx.fillRect(
-      (Math.sin(frameCount*0.05+i*1.3)*200+W/2+i*20)%W,
-      (frameCount*1.5+i*40)%H,8,8
+      (Math.sin(frameCount*0.05+i*1.3)*150+W/2+i*15)%W,
+      (frameCount*1.5+i*40)%H,6,6
     );
   }
-  ctx.fillStyle='#000b';ctx.fillRect(W/2-220,H/2-100,440,160);
-  ctx.strokeStyle='#ffee44';ctx.lineWidth=3;ctx.strokeRect(W/2-220,H/2-100,440,160);
-  drawPixelText('YOU WIN!',W/2-90,H/2-70,40,'#ffee44','left');
-  drawPixelText('MISSION COMPLETE',W/2-140,H/2-20,22,'#00ffcc','left');
-  drawPixelText('[ ENTER ] for Menu',W/2-115,H/2+30,16,'#fff','left');
+  
+  let centerY=H/2;
+  ctx.fillStyle='#000b';ctx.fillRect(W/2-180,centerY-80,360,140);
+  ctx.strokeStyle='#ffee44';ctx.lineWidth=2;ctx.strokeRect(W/2-180,centerY-80,360,140);
+  
+  drawPixelText('YOU WIN!',W/2,centerY-50,36,'#ffee44','center');
+  drawPixelText('MISSION COMPLETE',W/2,centerY-10,18,'#00ffcc','center');
+  drawPixelText('[ ENTER ] for Menu',W/2,centerY+35,14,'#fff','center');
 }
 
 // ---- MAIN LOOP ----
