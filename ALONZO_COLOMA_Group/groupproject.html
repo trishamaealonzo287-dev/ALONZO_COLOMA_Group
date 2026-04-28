@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Super Colonzo World - Randomized</title>
+<title>Super Colonzo World - Fixed</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#0a0a1a;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:'Courier New',monospace;overflow:hidden}
@@ -116,6 +116,7 @@ let currentLevel=0;
 let levelData=null;
 let cameraX=0;
 let powerupsInLevel=[];
+let mountainSeed=0;
 
 // ---- UTILITY: RANDOMIZE POWERUPS ----
 function generateRandomPowerups(spots){
@@ -197,18 +198,22 @@ function initBackgroundElements(){
   nebulas.push({x:300,y:250,r:110,color:'#aa8800',alpha:0.08});
   nebulas.push({x:1100,y:150,r:130,color:'#0088aa',alpha:0.13});
 
-  // Distant mountain ranges
+  // Distant mountain ranges - Fixed: Store peaks deterministically
+  mountainSeed=frameCount;
   distantMountains=[];
   for(let i=0;i<12;i++){
+    let seed=mountainSeed+i*12345;
+    let peaks=2+((seed*73)%2);
     distantMountains.push({
       x:i*200-100,
       y:280+Math.sin(i*0.3)*20,
-      h:120+Math.random()*60,
+      h:120+(((seed*97)%60)),
       w:180,
-      slope:0.3+Math.random()*0.4,
-      color:`hsla(220,30%,${40+Math.random()*20}%,0.4)`,
-      parallax:0.08+Math.random()*0.05,
-      peaks:2+Math.floor(Math.random()*2)
+      slope:0.3+((seed*53)%40)*0.01,
+      color:`hsla(220,30%,${40+((seed*41)%20)}%,0.4)`,
+      parallax:0.08+((seed*29)%5)*0.01,
+      peaks:peaks,
+      peakOffsets:Array.from({length:peaks+1},((_,j)=>((seed+j*999)*67)%20-10))
     });
   }
 }
@@ -309,18 +314,19 @@ function drawBackground(){
   });
   ctx.globalAlpha=1;
 
-  // ===== DISTANT MOUNTAINS =====
+  // ===== DISTANT MOUNTAINS (FIXED - Deterministic) =====
   distantMountains.forEach(mt=>{
     let mx=((mt.x-cameraX*mt.parallax)%2400+2400)%2400;
-    if(mx>W+mt.w)mx-=mt.w+W;
+    if(mx>W+mt.w)mx-=2400;
     
     ctx.fillStyle=mt.color;
     ctx.beginPath();
     ctx.moveTo(mx,mt.y+mt.h);
     
+    // Use stored peak offsets instead of random
     for(let i=0;i<=mt.peaks;i++){
       let px=mx+(mt.w/mt.peaks)*i;
-      let py=mt.y+(Math.random()-0.5)*mt.h*0.3;
+      let py=mt.y+mt.peakOffsets[i]*mt.h*0.01;
       ctx.lineTo(px,py);
     }
     
@@ -328,12 +334,13 @@ function drawBackground(){
     ctx.closePath();
     ctx.fill();
     
+    // Snow cap highlight
     ctx.fillStyle=mt.color.replace('0.4','0.7');
     ctx.beginPath();
     ctx.moveTo(mx,mt.y+mt.h);
     for(let i=0;i<=mt.peaks;i++){
       let px=mx+(mt.w/mt.peaks)*i;
-      let py=mt.y+(Math.random()-0.5)*mt.h*0.3;
+      let py=mt.y+mt.peakOffsets[i]*mt.h*0.01;
       ctx.lineTo(px,py);
     }
     ctx.lineTo(mx+mt.w*0.85,mt.y+mt.h*0.2);
