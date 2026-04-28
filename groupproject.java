@@ -1,4 +1,6 @@
 import java.awt.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
@@ -7,51 +9,74 @@ public class groupproject {
     public static void main(String[] args) {
         JFrame frame = new JFrame("Colonzo Pixel Obby");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        
         ObbyGame game = new ObbyGame();
         frame.add(game);
         frame.pack();
+        frame.setLocationRelativeTo(null); // Center window on screen
         frame.setVisible(true);
-        game.start();
+        
+        game.start(); // Kick off the game loop
     }
 }
 
 class Platform {
     int x, y, w, h;
-    public Platform(int x, int y, int w, int h) {
-        this.x = x; this.y = y; this.w = w; this.h = h;
+    Color color;
+
+    public Platform(int x, int y, int w, int h, Color color) {
+        this.x = x;
+        this.y = y;
+        this.w = w;
+        this.h = h;
+        this.color = color;
     }
 }
 
 class ObbyGame extends JPanel implements Runnable {
     private Thread gameThread;
+    
+    // Player Position and Physics
     private double playerX = 100, playerY = 100;
     private double velY = 0;
     private final double GRAVITY = 0.5;
+    
+    // States
     private boolean left = false, right = false, space = false;
+    private boolean jumping = false;
+    
+    // Camera
+    private int cameraX = 0;
 
-    // List to hold our platforms
-    List<Platform> platforms = new ArrayList<>();
+    // Level Data
+    private List<Platform> platforms = new ArrayList<>();
 
     public ObbyGame() {
         this.setPreferredSize(new Dimension(800, 600));
         this.setBackground(Color.BLACK);
         this.setFocusable(true);
 
-        // Define some platforms for the level
-        platforms.add(new Platform(50, 500, 200, 20));  // Starting ground
-        platforms.add(new Platform(300, 400, 150, 20)); // Middle platform
-        platforms.add(new Platform(500, 300, 150, 20)); // High platform
+        // --- Create the Level ---
+        platforms.add(new Platform(50, 500, 400, 30, Color.DARK_GRAY));   // Start
+        platforms.add(new Platform(500, 420, 150, 20, Color.DARK_GRAY));  // Jump 1
+        platforms.add(new Platform(750, 340, 150, 20, Color.DARK_GRAY));  // Jump 2
+        platforms.add(new Platform(1000, 260, 200, 20, Color.DARK_GRAY)); // Jump 3
+        platforms.add(new Platform(1300, 200, 100, 20, Color.YELLOW));    // Goal
 
-        this.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyPressed(java.awt.event.KeyEvent e) {
-                if(e.getKeyCode() == java.awt.event.KeyEvent.VK_A) left = true;
-                if(e.getKeyCode() == java.awt.event.KeyEvent.VK_D) right = true;
-                if(e.getKeyCode() == java.awt.event.KeyEvent.VK_SPACE) space = true;
+        // --- Input Handling ---
+        this.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_A) left = true;
+                if (e.getKeyCode() == KeyEvent.VK_D) right = true;
+                if (e.getKeyCode() == KeyEvent.VK_SPACE) space = true;
             }
-            public void keyReleased(java.awt.event.KeyEvent e) {
-                if(e.getKeyCode() == java.awt.event.KeyEvent.VK_A) left = false;
-                if(e.getKeyCode() == java.awt.event.KeyEvent.VK_D) right = false;
-                if(e.getKeyCode() == java.awt.event.KeyEvent.VK_SPACE) space = false;
+
+            @Override
+            public void keyReleased(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_A) left = false;
+                if (e.getKeyCode() == KeyEvent.VK_D) right = false;
+                if (e.getKeyCode() == KeyEvent.VK_SPACE) space = false;
             }
         });
     }
@@ -63,46 +88,70 @@ class ObbyGame extends JPanel implements Runnable {
         }
     }
 
-    private void updatePhysics() {
+    private void update() {
+        // Horizontal Movement
+        if (left) playerX -= 6;
+        if (right) playerX += 6;
+
+        // Apply Gravity
         velY += GRAVITY;
         playerY += velY;
 
-        boolean onGround = false;
-
-        // Collision Logic: Check every platform
+        // Collision Detection using Rectangles
+        Rectangle playerBounds = new Rectangle((int) playerX, (int) playerY, 32, 32);
+        
         for (Platform p : platforms) {
-            // Check if player is within horizontal bounds of platform
-            if (playerX + 32 > p.x && playerX < p.x + p.w) {
-                // Check if player is falling onto the top of the platform
-                if (playerY + 32 >= p.y && playerY + 32 <= p.y + velY + GRAVITY) {
-                    playerY = p.y - 32; // Snap to top
+            Rectangle platBounds = new Rectangle(p.x, p.y, p.w, p.h);
+            
+            if (playerBounds.intersects(platBounds)) {
+                // Only land if falling downward
+                if (velY > 0) {
                     velY = 0;
-                    onGround = true;
+                    playerY = p.y - 32; // Snap to top
+                    jumping = false;
+
+                    // Win Condition check
+                    if (p.color == Color.YELLOW) {
+                        JOptionPane.showMessageDialog(this, "You Beat the Obby!");
+                        resetPlayer();
+                        return; // Exit update to avoid further logic this frame
+                    }
                 }
             }
         }
 
-        // Jump if on a platform and space is pressed
-        if (onGround && space) {
+        // Jump Logic
+        if (space && !jumping) {
             velY = -12.0;
+            jumping = true;
         }
 
-        // Reset if fall off screen
-        if (playerY > 600) {
-            playerX = 100;
-            playerY = 100;
-            velY = 0;
+        // Camera follows player
+        cameraX = (int) playerX - 400;
+
+        // Fall off screen reset
+        if (playerY > 700) {
+            resetPlayer();
         }
+    }
+
+    private void resetPlayer() {
+        playerX = 100;
+        playerY = 100;
+        velY = 0;
+        jumping = false;
     }
 
     @Override
     public void run() {
         while (true) {
-            if (left) playerX -= 5;
-            if (right) playerX += 5;
-            updatePhysics();
+            update();
             repaint();
-            try { Thread.sleep(16); } catch (Exception e) {}
+            try {
+                Thread.sleep(16); // ~60 FPS
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -110,14 +159,24 @@ class ObbyGame extends JPanel implements Runnable {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         
+        // Everything inside here is shifted by the camera
+        g.translate(-cameraX, 0);
+
         // Draw Platforms
-        g.setColor(Color.DARK_GRAY);
         for (Platform p : platforms) {
+            g.setColor(p.color);
             g.fillRect(p.x, p.y, p.w, p.h);
         }
 
         // Draw Player
         g.setColor(Color.CYAN);
-        g.fillRect((int)playerX, (int)playerY, 32, 32);
+        g.fillRect((int) playerX, (int) playerY, 32, 32);
+        
+        // Optional: Simple background stars for depth
+        g.setColor(Color.WHITE);
+        for(int i = 0; i < 2000; i += 250) {
+            g.fillOval(i, 50, 3, 3);
+            g.fillOval(i + 100, 150, 3, 3);
+        }
     }
 }
