@@ -21,13 +21,15 @@ public class groupproject {
 class Platform {
     int x, y, w, h;
     Color color;
+    boolean isLava; // Property to determine if platform kills player
 
-    public Platform(int x, int y, int w, int h, Color color) {
+    public Platform(int x, int y, int w, int h, Color color, boolean isLava) {
         this.x = x;
         this.y = y;
         this.w = w;
         this.h = h;
         this.color = color;
+        this.isLava = isLava;
     }
 }
 
@@ -44,6 +46,9 @@ class ObbyGame extends JPanel implements Runnable {
     private boolean jumpPressed = false; 
     private boolean jumping = false;
 
+    // Death counter variable
+    private int deaths = 0;
+
     // Camera offset to follow player
     private int cameraX = 0;
 
@@ -55,13 +60,18 @@ class ObbyGame extends JPanel implements Runnable {
         this.setBackground(Color.BLACK);
         this.setFocusable(true);
 
-        // Define some platforms for the level
-        platforms.add(new Platform(50, 500, 400, 30, Color.DARK_GRAY));   // Starting ground
-        platforms.add(new Platform(500, 420, 150, 20, Color.DARK_GRAY));  // Middle platform
-        platforms.add(new Platform(750, 340, 150, 20, Color.DARK_GRAY));  // High platform
-        platforms.add(new Platform(1000, 260, 200, 20, Color.DARK_GRAY)); // Far platform
-        platforms.add(new Platform(1300, 200, 100, 20, Color.YELLOW));    // GOAL platform
-
+        // --- Define Level Platforms ---
+        // Format: x, y, width, height, color, isLava
+        platforms.add(new Platform(50, 500, 400, 30, Color.DARK_GRAY, false));   // Start
+        platforms.add(new Platform(500, 420, 150, 20, Color.DARK_GRAY, false));  // Platform 1
+        
+        // ADDED LAVA (RED)
+        platforms.add(new Platform(700, 550, 300, 20, Color.RED, true)); 
+        
+        platforms.add(new Platform(1100, 340, 150, 20, Color.DARK_GRAY, false)); // Platform 2
+        platforms.add(new Platform(1350, 260, 200, 20, Color.DARK_GRAY, false)); // Platform 3
+        platforms.add(new Platform(1650, 200, 100, 20, Color.YELLOW, false));    // GOAL
+        
         this.addKeyListener(new KeyAdapter() {
             public void keyPressed(KeyEvent e) {
                 if(e.getKeyCode() == KeyEvent.VK_A) left = true;
@@ -88,22 +98,31 @@ class ObbyGame extends JPanel implements Runnable {
         if (left) playerX -= 6;
         if (right) playerX += 6;
 
+        // Apply constant gravity
         velY += GRAVITY;
         playerY += velY;
 
-        // NEW JUMP LOGIC
+        // JUMP LOGIC: Uses your provided code
         if (jumpPressed && !jumping) {
             velY = -12;
             jumping = true;
         }
 
+        boolean touchingLava = false;
+
         // COLLISION LOGIC: Using Rectangles
         Rectangle playerBounds = new Rectangle((int)playerX, (int)playerY, 32, 32);
         for (Platform p : platforms) {
             Rectangle platBounds = new Rectangle(p.x, p.y, p.w, p.h);
+            
             if (playerBounds.intersects(platBounds)) {
-                // Only trigger collision if falling DOWN into the platform
-                if (velY > 0) {
+                // Check if we hit lava
+                if(p.isLava) {
+                    touchingLava = true;
+                }
+
+                // Only land on top of solid (non-lava) platforms while falling
+                if (velY > 0 && !p.isLava) {
                     velY = 0;
                     playerY = p.y - 32;
                     jumping = false;
@@ -118,13 +137,16 @@ class ObbyGame extends JPanel implements Runnable {
             }
         }
 
+        // --- DEATH & RESPAWN LOGIC ---
+        if (playerY > 600 || touchingLava) {
+            playerX = 100;
+            playerY = 100;
+            velY = 0; // Stop downward momentum on respawn
+            deaths++;
+        }
+
         // Update Camera to follow player (centered)
         cameraX = (int)playerX - 400;
-
-        // Reset if fall off screen
-        if (playerY > 700) {
-            resetPlayer();
-        }
     }
 
     private void resetPlayer() {
@@ -153,7 +175,8 @@ class ObbyGame extends JPanel implements Runnable {
         super.paintComponent(g);
         
         // Translate the graphics context to simulate a camera
-        g.translate(-cameraX, 0);
+        Graphics2D g2 = (Graphics2D) g;
+        g2.translate(-cameraX, 0);
 
         // Draw Platforms
         for (Platform p : platforms) {
@@ -164,5 +187,11 @@ class ObbyGame extends JPanel implements Runnable {
         // Draw Player
         g.setColor(Color.CYAN);
         g.fillRect((int)playerX, (int)playerY, 32, 32);
+        
+        // Reset translation to draw HUD (Deaths) fixed to the screen
+        g2.translate(cameraX, 0);
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 18));
+        g.drawString("Deaths: " + deaths, 20, 30);
     }
 }
