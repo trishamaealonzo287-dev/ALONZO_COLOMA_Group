@@ -1,6 +1,8 @@
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.*;
 
 public class groupproject {
@@ -36,6 +38,16 @@ class Platform {
 class ObbyGame extends JPanel implements Runnable {
     private Thread gameThread;
     
+    // --- GAME STATES ---
+    private final int MENU = 0;
+    private final int PLAYING = 1;
+    private final int SETTINGS = 2;
+    private int gameState = MENU;
+
+    // LEVEL TRACKING ADDED
+    private int currentLevel = 1;
+    private final int MAX_LEVEL = 5;
+
     // MOVED THE PLAYER VARIABLES HERE
     private int playerX = 100, playerY = 100;
     private double velY = 0;
@@ -61,23 +73,29 @@ class ObbyGame extends JPanel implements Runnable {
         this.setFocusable(true);
 
         // --- Define Level Platforms ---
-        // Starting platforms
-        platforms.add(new Platform(0, 500, 200, 50, Color.DARK_GRAY, false));
-        platforms.add(new Platform(250, 400, 150, 20, Color.DARK_GRAY, false));
-        platforms.add(new Platform(450, 300, 150, 20, Color.DARK_GRAY, false));
-        
-        // NEW STEPPING STONE: Added this so the goal isn't floating too high
-        platforms.add(new Platform(650, 250, 100, 20, Color.DARK_GRAY, false));
-        
-        // Lava and Goal
-        platforms.add(new Platform(650, 550, 400, 20, Color.RED, true)); 
-        platforms.add(new Platform(850, 180, 100, 20, Color.YELLOW, false)); // Goal is now reachable via the stone
+        loadLevel(currentLevel);
         
         this.addKeyListener(new KeyAdapter() {
             public void keyPressed(KeyEvent e) {
-                if(e.getKeyCode() == KeyEvent.VK_A) left = true;
-                if(e.getKeyCode() == KeyEvent.VK_D) right = true;
-                if(e.getKeyCode() == KeyEvent.VK_SPACE) jumpPressed = true;
+                // Menu Navigation Controls
+                if (gameState == MENU) {
+                    if(e.getKeyCode() == KeyEvent.VK_ENTER) {
+                        currentLevel = 1;
+                        loadLevel(currentLevel);
+                        gameState = PLAYING;
+                    }
+                    if(e.getKeyCode() == KeyEvent.VK_S) gameState = SETTINGS;
+                } else if (gameState == SETTINGS) {
+                    if(e.getKeyCode() == KeyEvent.VK_ESCAPE) gameState = MENU;
+                } else if (gameState == PLAYING) {
+                    if(e.getKeyCode() == KeyEvent.VK_A) left = true;
+                    if(e.getKeyCode() == KeyEvent.VK_D) right = true;
+                    if(e.getKeyCode() == KeyEvent.VK_SPACE) jumpPressed = true;
+                    if(e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                        gameState = MENU;
+                        resetPlayer();
+                    }
+                }
             }
             public void keyReleased(KeyEvent e) {
                 if(e.getKeyCode() == KeyEvent.VK_A) left = false;
@@ -85,6 +103,48 @@ class ObbyGame extends JPanel implements Runnable {
                 if(e.getKeyCode() == KeyEvent.VK_SPACE) jumpPressed = false;
             }
         });
+    }
+
+    private void loadLevel(int level) {
+        platforms.clear();
+        resetPlayer(); // Ensure player position and inputs are reset for new level
+        
+        switch(level) {
+            case 1:
+                platforms.add(new Platform(0, 500, 400, 50, Color.DARK_GRAY, false));
+                platforms.add(new Platform(450, 400, 200, 20, Color.DARK_GRAY, false));
+                platforms.add(new Platform(700, 300, 150, 20, Color.YELLOW, false));
+                break;
+            case 2:
+                platforms.add(new Platform(0, 500, 200, 50, Color.DARK_GRAY, false));
+                platforms.add(new Platform(200, 550, 400, 50, Color.RED, true)); 
+                platforms.add(new Platform(300, 350, 100, 20, Color.DARK_GRAY, false));
+                platforms.add(new Platform(650, 400, 150, 20, Color.YELLOW, false));
+                break;
+            case 3:
+                platforms.add(new Platform(0, 500, 100, 50, Color.DARK_GRAY, false));
+                platforms.add(new Platform(200, 450, 50, 20, Color.DARK_GRAY, false));
+                platforms.add(new Platform(400, 400, 50, 20, Color.DARK_GRAY, false));
+                platforms.add(new Platform(600, 350, 50, 20, Color.DARK_GRAY, false));
+                platforms.add(new Platform(800, 300, 100, 20, Color.YELLOW, false));
+                break;
+            case 4:
+                // Section 3 & 4 inspired layout
+                platforms.add(new Platform(0, 580, 1200, 20, Color.RED, true)); 
+                platforms.add(new Platform(50, 500, 100, 20, Color.DARK_GRAY, false));
+                platforms.add(new Platform(250, 400, 100, 20, Color.DARK_GRAY, false));
+                platforms.add(new Platform(450, 300, 100, 20, Color.DARK_GRAY, false));
+                platforms.add(new Platform(700, 250, 100, 20, Color.YELLOW, false));
+                break;
+            case 5:
+                platforms.add(new Platform(0, 500, 100, 50, Color.DARK_GRAY, false));
+                platforms.add(new Platform(150, 580, 1500, 20, Color.RED, true));
+                platforms.add(new Platform(200, 420, 60, 20, Color.DARK_GRAY, false));
+                platforms.add(new Platform(400, 340, 60, 20, Color.DARK_GRAY, false));
+                platforms.add(new Platform(600, 420, 60, 20, Color.DARK_GRAY, false));
+                platforms.add(new Platform(850, 300, 200, 20, Color.YELLOW, false));
+                break;
+        }
     }
 
     public void start() {
@@ -95,6 +155,9 @@ class ObbyGame extends JPanel implements Runnable {
     }
 
     private void updatePhysics() {
+        // Only run physics if the game is active
+        if (gameState != PLAYING) return;
+
         // MOVEMENT LOGIC: This uses the boolean variables to move the player left or right
         if (left) playerX -= 6;
         if (right) playerX += 6;
@@ -130,8 +193,14 @@ class ObbyGame extends JPanel implements Runnable {
 
                     // Win Condition check
                     if (p.color == Color.YELLOW) {
-                        JOptionPane.showMessageDialog(this, "You Beat the Obby!");
-                        resetPlayer();
+                        if (currentLevel < MAX_LEVEL) {
+                            currentLevel++;
+                            loadLevel(currentLevel);
+                        } else {
+                            JOptionPane.showMessageDialog(this, "You Beat the Obby!");
+                            resetPlayer();
+                            gameState = MENU; // Return to menu after win
+                        }
                         return;
                     }
                 }
@@ -140,21 +209,25 @@ class ObbyGame extends JPanel implements Runnable {
 
         // --- DEATH & RESPAWN LOGIC ---
         if (playerY > 600 || touchingLava) {
-            playerX = 100;
-            playerY = 100;
-            velY = 0; // Stop downward momentum on respawn
+            resetPlayer();
             deaths++;
         }
 
         // CAMERA CALCULATION
         cameraX = playerX - 300;
+        if (cameraX < 0) cameraX = 0;
     }
 
     private void resetPlayer() {
-        playerX = 100;
-        playerY = 100;
+        playerX = 50;
+        playerY = 400;
         velY = 0;
         jumping = false;
+        cameraX = 0;
+        // Added to prevent automatic movement on reset
+        left = false;
+        right = false;
+        jumpPressed = false;
     }
 
     @Override
@@ -170,11 +243,45 @@ class ObbyGame extends JPanel implements Runnable {
         }
     }
 
-    // MOVE PAINTCOMPONENT INSIDE HERE
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         
+        if (gameState == MENU) {
+            drawMenu(g);
+        } else if (gameState == SETTINGS) {
+            drawSettings(g);
+        } else if (gameState == PLAYING) {
+            drawGame(g);
+        }
+    }
+
+    private void drawMenu(Graphics g) {
+        g.setColor(Color.CYAN);
+        g.setFont(new Font("Arial", Font.BOLD, 50));
+        g.drawString("PIXEL OBBY", 250, 200);
+        
+        g.setFont(new Font("Arial", Font.PLAIN, 20));
+        g.setColor(Color.WHITE);
+        g.drawString("Press ENTER to Play", 300, 300);
+        g.drawString("Press S for Settings", 305, 340);
+    }
+
+    private void drawSettings(Graphics g) {
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 30));
+        g.drawString("SETTINGS", 320, 150);
+        
+        g.setFont(new Font("Arial", Font.PLAIN, 18));
+        g.drawString("- Use A & D to move", 300, 250);
+        g.drawString("- Use SPACE to jump", 300, 280);
+        g.drawString("- Avoid Red (Lava)", 300, 310);
+        g.drawString("- Reach Yellow (Goal)", 300, 340);
+        
+        g.drawString("Press ESC to return", 315, 450);
+    }
+
+    private void drawGame(Graphics g) {
         // In paintComponent:
         // Translate the view based on cameraX to create a scrolling effect
         g.translate(-cameraX, 0);
@@ -192,8 +299,10 @@ class ObbyGame extends JPanel implements Runnable {
         // Reset translation so the HUD (UI) stays fixed to the screen
         g.translate(cameraX, 0);
         
-        // DRAW DEATH COUNTER
+        // DRAW DEATH COUNTER & LEVEL
         g.setColor(Color.WHITE);
-        g.drawString("Deaths: " + deaths, 20, 20);
+        g.drawString("Level: " + currentLevel, 20, 20);
+        g.drawString("Deaths: " + deaths, 20, 40);
+        g.drawString("ESC for Menu", 700, 20);
     }
 }
