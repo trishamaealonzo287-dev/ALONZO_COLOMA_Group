@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Super Colonzo World</title>
+<title>Super Colonzo World Enhanced</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#0a0a1a;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:'Courier New',monospace;overflow:hidden}
@@ -30,6 +30,9 @@ let particles=[];
 let floatingTexts=[];
 let stars=[];
 let bgClouds=[];
+let bgIslands=[];
+let nebulas=[];
+let distantMountains=[];
 
 // ---- PLAYER ----
 let p={
@@ -117,25 +120,74 @@ let levelData=null;
 let cameraX=0;
 let powerupsInLevel=[];
 
-// ---- STAR INIT ----
-for(let i=0;i<120;i++){
-  stars.push({
-    x:Math.random()*2400,
-    y:Math.random()*300,
-    size:Math.random()*2+0.5,
-    twinkle:Math.random()*Math.PI*2,
-    speed:Math.random()*0.3+0.1
-  });
-}
-for(let i=0;i<12;i++){
-  bgClouds.push({
-    x:Math.random()*2400,
-    y:40+Math.random()*180,
-    w:80+Math.random()*120,
-    h:40+Math.random()*30,
-    speed:0.3+Math.random()*0.4,
-    color:`rgba(${140+Math.floor(Math.random()*60)},${120+Math.floor(Math.random()*80)},${200+Math.floor(Math.random()*55)},0.18)`
-  });
+// ---- BACKGROUND ELEMENTS INIT ----
+function initBackgroundElements(){
+  // Stars with varying depths
+  stars=[];
+  for(let i=0;i<150;i++){
+    stars.push({
+      x:Math.random()*2400,
+      y:Math.random()*350,
+      size:Math.random()*2.5+0.3,
+      twinkle:Math.random()*Math.PI*2,
+      speed:Math.random()*0.4+0.05,
+      brightness:Math.random()*0.7+0.3,
+      depth:Math.random()*0.8+0.2
+    });
+  }
+
+  // Dynamic clouds with variation
+  bgClouds=[];
+  for(let i=0;i<18;i++){
+    bgClouds.push({
+      x:Math.random()*2400,
+      y:30+Math.random()*200,
+      w:60+Math.random()*150,
+      h:30+Math.random()*40,
+      speed:0.15+Math.random()*0.5,
+      color:`rgba(${140+Math.floor(Math.random()*60)},${120+Math.floor(Math.random()*80)},${200+Math.floor(Math.random()*55)},${0.15+Math.random()*0.15})`,
+      density:Math.random()*0.6+0.3,
+      depth:Math.random()
+    });
+  }
+
+  // Floating islands with parallax
+  bgIslands=[];
+  for(let i=0;i<8;i++){
+    bgIslands.push({
+      x:i*300+100,
+      y:180+Math.sin(i*0.5)*40,
+      w:70+Math.random()*80,
+      h:40+Math.random()*30,
+      color:`hsl(${220+Math.random()*20},${60+Math.random()*20}%,${35+Math.random()*15}%)`,
+      shadowColor:`hsla(${220+Math.random()*20},${60+Math.random()*20}%,${15+Math.random()*10}%,0.6)`,
+      parallax:0.15+Math.random()*0.15,
+      tilt:Math.random()*0.3-0.15
+    });
+  }
+
+  // Nebula clouds (deep space effect)
+  nebulas=[];
+  nebulas.push({x:150,y:120,r:100,color:'#2200aa',alpha:0.15});
+  nebulas.push({x:900,y:80,r:120,color:'#aa0022',alpha:0.12});
+  nebulas.push({x:600,y:200,r:90,color:'#00aa44',alpha:0.1});
+  nebulas.push({x:300,y:250,r:110,color:'#aa8800',alpha:0.08});
+  nebulas.push({x:1100,y:150,r:130,color:'#0088aa',alpha:0.13});
+
+  // Distant mountain ranges
+  distantMountains=[];
+  for(let i=0;i<12;i++){
+    distantMountains.push({
+      x:i*200-100,
+      y:280+Math.sin(i*0.3)*20,
+      h:120+Math.random()*60,
+      w:180,
+      slope:0.3+Math.random()*0.4,
+      color:`hsla(220,30%,${40+Math.random()*20}%,0.4)`,
+      parallax:0.08+Math.random()*0.05,
+      peaks:2+Math.floor(Math.random()*2)
+    });
+  }
 }
 
 // ---- UTILS ----
@@ -178,6 +230,7 @@ function loadLevel(idx){
   powerupsInLevel=levelData.powerups.map(p=>({...p}));
   resetPlayer();
   cameraX=0;
+  initBackgroundElements();
 }
 
 function resetPlayer(){
@@ -188,73 +241,193 @@ function resetPlayer(){
   p.animFrame=0;p.jumpAnim=0;
 }
 
-// ---- DRAW BG ----
+// ---- ENHANCED BACKGROUND ----
 function drawBackground(){
   let bg=levelData?levelData.bg:'#0d1a3a';
-  // sky gradient
+  
+  // ===== SKY GRADIENT =====
   let grd=ctx.createLinearGradient(0,0,0,H);
-  if(bg==='#0d1a3a'){grd.addColorStop(0,'#030818');grd.addColorStop(1,'#0d1a3a');}
-  else if(bg==='#1a0d3a'){grd.addColorStop(0,'#0a0318');grd.addColorStop(1,'#1a0d3a');}
-  else{grd.addColorStop(0,'#030d08');grd.addColorStop(1,'#0d2a1a');}
+  if(bg==='#0d1a3a'){
+    grd.addColorStop(0,'#0a0510');
+    grd.addColorStop(0.3,'#0f1428');
+    grd.addColorStop(0.7,'#0d1a3a');
+    grd.addColorStop(1,'#162847');
+  }
+  else if(bg==='#1a0d3a'){
+    grd.addColorStop(0,'#0a0312');
+    grd.addColorStop(0.3,'#15081f');
+    grd.addColorStop(0.7,'#1a0d3a');
+    grd.addColorStop(1,'#2a1a4a');
+  }
+  else{
+    grd.addColorStop(0,'#030d08');
+    grd.addColorStop(0.3,'#081510');
+    grd.addColorStop(0.7,'#0d2a1a');
+    grd.addColorStop(1,'#1a3a25');
+  }
   ctx.fillStyle=grd;
   ctx.fillRect(0,0,W,H);
 
-  // stars (parallax)
-  stars.forEach(s=>{
-    let blink=0.5+0.5*Math.sin(s.twinkle+frameCount*0.04);
-    ctx.globalAlpha=blink;
-    ctx.fillStyle='#fff';
-    let sx=(s.x-cameraX*s.speed*0.3)%2400;
-    if(sx<0)sx+=2400;
-    ctx.fillRect(Math.round(sx%W+((sx/W|0)*0)),Math.round(s.y),Math.ceil(s.size),Math.ceil(s.size));
+  // ===== DEEP NEBULA BACKGROUND =====
+  nebulas.forEach(neb=>{
+    ctx.globalAlpha=neb.alpha;
+    let grd2=ctx.createRadialGradient(neb.x,neb.y,10,neb.x,neb.y,neb.r);
+    grd2.addColorStop(0,'#ffffff22');
+    grd2.addColorStop(0.5,neb.color);
+    grd2.addColorStop(1,'transparent');
+    ctx.fillStyle=grd2;
+    ctx.beginPath();
+    ctx.arc(neb.x,neb.y,neb.r,0,Math.PI*2);
+    ctx.fill();
   });
   ctx.globalAlpha=1;
 
-  // distant floating island silhouettes (deep parallax)
-  ctx.fillStyle='#0a0f2a';
-  for(let i=0;i<6;i++){
-    let ix=((i*380-cameraX*0.1)%1800+1800)%1800;
+  // ===== DISTANT MOUNTAINS =====
+  distantMountains.forEach(mt=>{
+    let mx=((mt.x-cameraX*mt.parallax)%2400+2400)%2400;
+    if(mx>W+mt.w)mx-=mt.w+W;
+    
+    ctx.fillStyle=mt.color;
     ctx.beginPath();
-    ctx.ellipse(ix,320+i*20,60+i*10,18,0,0,Math.PI*2);
+    ctx.moveTo(mx,mt.y+mt.h);
+    
+    // Simple jagged peaks
+    for(let i=0;i<=mt.peaks;i++){
+      let px=mx+(mt.w/mt.peaks)*i;
+      let py=mt.y+(Math.random()-0.5)*mt.h*0.3;
+      ctx.lineTo(px,py);
+    }
+    
+    ctx.lineTo(mx+mt.w,mt.y+mt.h);
+    ctx.closePath();
     ctx.fill();
-  }
+    
+    // Snow cap highlight
+    ctx.fillStyle=mt.color.replace('0.4','0.7');
+    ctx.beginPath();
+    ctx.moveTo(mx,mt.y+mt.h);
+    for(let i=0;i<=mt.peaks;i++){
+      let px=mx+(mt.w/mt.peaks)*i;
+      let py=mt.y+(Math.random()-0.5)*mt.h*0.3;
+      ctx.lineTo(px,py);
+    }
+    ctx.lineTo(mx+mt.w*0.85,mt.y+mt.h*0.2);
+    ctx.closePath();
+    ctx.fill();
+  });
 
-  // clouds (mid parallax)
-  bgClouds.forEach(c=>{
-    let cx=((c.x-cameraX*0.25)%2400+2400)%2400;
-    // wrap to canvas
-    let drawX=cx%(W+c.w)-c.w;
-    ctx.fillStyle=c.color;
-    // pixel-art cloud blobs
-    for(let bx=0;bx<c.w;bx+=16){
-      for(let by=0;by<c.h;by+=12){
-        if(Math.random()<0.0004)continue;
-        let alpha=0.08+0.1*(1-(Math.abs(bx-c.w/2)/(c.w/2)));
-        ctx.globalAlpha=alpha;
-        ctx.fillRect(Math.round(drawX+bx),Math.round(c.y+by),14,10);
-      }
+  // ===== FLOATING ISLANDS =====
+  bgIslands.forEach(isl=>{
+    let ix=((isl.x-cameraX*isl.parallax)%2400+2400)%2400;
+    
+    // Shadow
+    ctx.globalAlpha=0.4;
+    ctx.fillStyle=isl.shadowColor;
+    ctx.beginPath();
+    ctx.ellipse(ix+isl.w/2,isl.y+isl.h+8,isl.w*0.5,4,isl.tilt,0,Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha=1;
+    
+    // Island body with gradient
+    let igrd=ctx.createLinearGradient(ix,isl.y,ix,isl.y+isl.h);
+    igrd.addColorStop(0,isl.color);
+    igrd.addColorStop(1,isl.color.replace('35','25'));
+    ctx.fillStyle=igrd;
+    
+    ctx.save();
+    ctx.translate(ix+isl.w/2,isl.y);
+    ctx.rotate(isl.tilt);
+    ctx.beginPath();
+    ctx.ellipse(0,0,isl.w*0.5,isl.h*0.4,0,0,Math.PI*2);
+    ctx.fill();
+    
+    // Shiny highlight
+    ctx.globalAlpha=0.3;
+    ctx.fillStyle='#ffffff';
+    ctx.beginPath();
+    ctx.ellipse(-isl.w*0.15,-isl.h*0.15,isl.w*0.2,isl.h*0.15,0,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+    ctx.globalAlpha=1;
+    
+    // Vegetation wisps
+    ctx.globalAlpha=0.2;
+    ctx.fillStyle=isl.color.replace('35','60');
+    for(let v=0;v<3;v++){
+      ctx.fillRect(ix+isl.w*0.3+v*15,isl.y-3,3,5);
     }
     ctx.globalAlpha=1;
   });
 
-  // pixel grid overlay (faint)
-  ctx.globalAlpha=0.03;
-  ctx.strokeStyle='#88aaff';
-  ctx.lineWidth=1;
-  for(let gx=0;gx<W;gx+=TILE){ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,H);ctx.stroke();}
-  for(let gy=0;gy<H;gy+=TILE){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();}
+  // ===== STARS FIELD =====
+  stars.forEach(s=>{
+    let blink=0.3+0.7*Math.sin(s.twinkle+frameCount*s.speed*0.04);
+    ctx.globalAlpha=blink*s.brightness;
+    ctx.fillStyle='#fff';
+    let sx=((s.x-cameraX*s.speed*0.1)%2400+2400)%2400;
+    let sizeVar=s.size+(Math.sin(frameCount*0.05+s.x)*0.5);
+    ctx.fillRect(Math.round(sx),Math.round(s.y),Math.ceil(sizeVar),Math.ceil(sizeVar));
+  });
   ctx.globalAlpha=1;
 
-  // nebula blobs
-  let nebColors=['#2200aa22','#aa002222','#00aa4422'];
-  nebColors.forEach((nc,ni)=>{
-    ctx.globalAlpha=0.12;
-    ctx.fillStyle=nc;
-    let nx=((ni*350-cameraX*0.05)%800+800)%800;
+  // ===== CLOUDS LAYERS =====
+  bgClouds.forEach(c=>{
+    let cx=((c.x-cameraX*c.speed*0.25)%2400+2400)%2400;
+    
+    // Multi-layer cloud effect
+    ctx.globalAlpha=c.density*0.4;
+    ctx.fillStyle=c.color;
+    
+    // Cloud shape from multiple ellipses
+    let cloudParticles=3+Math.floor(c.w/40);
+    for(let cp=0;cp<cloudParticles;cp++){
+      let cpx=cx+(cp/cloudParticles)*c.w;
+      let cpy=c.y+(Math.sin(cp+frameCount*0.01)*c.h*0.3);
+      
+      ctx.beginPath();
+      ctx.ellipse(cpx,cpy,c.w/(cloudParticles*0.7),c.h*0.5,0.2,0,Math.PI*2);
+      ctx.fill();
+    }
+    
+    // Cloud shine
+    ctx.globalAlpha=c.density*0.15;
+    ctx.fillStyle='#ffffff';
     ctx.beginPath();
-    ctx.arc(nx,150+ni*60,120+ni*30,0,Math.PI*2);
+    ctx.ellipse(cx+c.w*0.3,c.y,c.w*0.2,c.h*0.3,0,0,Math.PI*2);
     ctx.fill();
   });
+  ctx.globalAlpha=1;
+
+  // ===== PIXEL GRID OVERLAY (SUBTLE) =====
+  ctx.globalAlpha=0.02;
+  ctx.strokeStyle='#88aaff';
+  ctx.lineWidth=1;
+  for(let gx=0;gx<W;gx+=TILE){
+    ctx.beginPath();
+    ctx.moveTo(gx,0);
+    ctx.lineTo(gx,H);
+    ctx.stroke();
+  }
+  for(let gy=0;gy<H;gy+=TILE){
+    ctx.beginPath();
+    ctx.moveTo(0,gy);
+    ctx.lineTo(W,gy);
+    ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+
+  // ===== ATMOSPHERIC LIGHT RAYS =====
+  ctx.globalAlpha=0.08;
+  ctx.fillStyle='#00ddff';
+  for(let ray=0;ray<6;ray++){
+    let rayX=W/6*ray+Math.sin(frameCount*0.01+ray)*20;
+    ctx.beginPath();
+    ctx.moveTo(rayX,-50);
+    ctx.lineTo(rayX-60,H+50);
+    ctx.lineTo(rayX+60,H+50);
+    ctx.closePath();
+    ctx.fill();
+  }
   ctx.globalAlpha=1;
 }
 
@@ -402,7 +575,6 @@ function drawPowerup(pu){
 }
 
 // ---- DRAW HERO CHARACTER ----
-// A cute space adventurer: helmet, jetpack, glowing visor
 function drawPlayer(){
   let x=Math.round(p.x-cameraX),y=Math.round(p.y);
   let f=p.facingR?1:-1;
@@ -695,7 +867,6 @@ function drawMenu(){
 
   // Demo player preview
   ctx.save();ctx.translate(W/2-80,H/2-10);
-  // draw mini demo
   let demoP={x:0,y:0,vx:0,vy:0,onGround:true,facingR:true,invincible:0,speedBoost:0,shield:0,hasDoubleJump:false,doubleJump:true,jumpAnim:0};
   let saved={...p};
   Object.assign(p,demoP);
@@ -773,7 +944,6 @@ function loop(){
 
   requestAnimationFrame(loop);
 }
-
 
 loop();
 </script>
