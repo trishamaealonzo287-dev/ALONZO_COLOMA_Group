@@ -61,12 +61,15 @@ class ObbyGame extends JPanel implements Runnable {
         this.setFocusable(true);
 
         // --- Define Level Platforms ---
-        platforms.add(new Platform(50, 500, 400, 30, Color.DARK_GRAY, false));   
-        platforms.add(new Platform(500, 420, 150, 20, Color.DARK_GRAY, false));  
-        platforms.add(new Platform(700, 550, 300, 20, Color.RED, true)); // Lava
-        platforms.add(new Platform(1100, 340, 150, 20, Color.DARK_GRAY, false)); 
-        platforms.add(new Platform(1350, 260, 200, 20, Color.DARK_GRAY, false)); 
-        platforms.add(new Platform(1650, 200, 100, 20, Color.YELLOW, false));    // GOAL
+        // Adding your requested platforms (Defaulting to Gray and not lava)
+        platforms.add(new Platform(0, 500, 200, 50, Color.DARK_GRAY, false));
+        platforms.add(new Platform(300, 400, 150, 20, Color.DARK_GRAY, false));
+        platforms.add(new Platform(550, 300, 150, 20, Color.DARK_GRAY, false));
+        
+        // Additional obstacles and Goal
+        platforms.add(new Platform(800, 550, 300, 20, Color.RED, true)); // Lava pit
+        platforms.add(new Platform(1100, 250, 150, 20, Color.DARK_GRAY, false));
+        platforms.add(new Platform(1400, 200, 100, 20, Color.YELLOW, false)); // GOAL
         
         this.addKeyListener(new KeyAdapter() {
             public void keyPressed(KeyEvent e) {
@@ -111,13 +114,16 @@ class ObbyGame extends JPanel implements Runnable {
             Rectangle platBounds = new Rectangle(p.x, p.y, p.w, p.h);
             
             if (playerBounds.intersects(platBounds)) {
+                // Check for lava touch
                 if(p.isLava) touchingLava = true;
 
+                // Only land on top of solid platforms while falling
                 if (velY > 0 && !p.isLava) {
                     velY = 0;
                     playerY = p.y - 32;
                     jumping = false;
 
+                    // Win logic
                     if (p.color == Color.YELLOW) {
                         JOptionPane.showMessageDialog(this, "You Beat the Obby!");
                         resetPlayer();
