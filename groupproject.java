@@ -7,7 +7,7 @@ import javax.swing.*;
 
 public class groupproject {
     public static void main(String[] args) {
-        JFrame frame = new JFrame("Colonzo Pixel Obby");
+        JFrame frame = new JFrame("Super Colonzo World");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         ObbyGame game = new ObbyGame();
@@ -23,15 +23,15 @@ public class groupproject {
 class Platform {
     int x, y, w, h;
     Color color;
-    boolean isLava; // Property to determine if platform kills player
+    boolean isGoal; // Replaced isLava logic with isGoal for clarity
 
-    public Platform(int x, int y, int w, int h, Color color, boolean isLava) {
+    public Platform(int x, int y, int w, int h, Color color, boolean isGoal) {
         this.x = x;
         this.y = y;
         this.w = w;
         this.h = h;
         this.color = color;
-        this.isLava = isLava;
+        this.isGoal = isGoal;
     }
 }
 
@@ -42,7 +42,16 @@ class ObbyGame extends JPanel implements Runnable {
     private final int MENU = 0;
     private final int PLAYING = 1;
     private final int SETTINGS = 2;
+    private final int GAMEOVER = 3;
     private int gameState = MENU;
+
+    // --- MARIO THEME COLORS ---
+    private final Color MARIO_SKY = new Color(107, 140, 255);
+    private final Color MARIO_GRASS = new Color(0, 168, 0);
+    private final Color MARIO_BRICK = new Color(200, 76, 12);
+    private final Color MARIO_PIPE = new Color(40, 180, 40);
+    private final Color DIRT_BROWN = new Color(130, 80, 40);
+    private final Color Q_BLOCK = new Color(255, 160, 0);
 
     // LEVEL TRACKING ADDED
     private int currentLevel = 1;
@@ -57,9 +66,10 @@ class ObbyGame extends JPanel implements Runnable {
     private boolean left = false, right = false;
     private boolean jumpPressed = false; 
     private boolean jumping = false;
+    private boolean facingRight = true; 
 
-    // Death counter variable
-    private int deaths = 0;
+    // LIVES SYSTEM ADDED (Removed Death Tracker)
+    private int lives = 3;
 
     // CAMERA VARIABLE ADDED
     private int cameraX = 0;
@@ -69,7 +79,7 @@ class ObbyGame extends JPanel implements Runnable {
 
     public ObbyGame() {
         this.setPreferredSize(new Dimension(800, 600));
-        this.setBackground(Color.BLACK);
+        this.setBackground(MARIO_SKY);
         this.setFocusable(true);
 
         // --- Define Level Platforms ---
@@ -77,14 +87,16 @@ class ObbyGame extends JPanel implements Runnable {
         
         this.addKeyListener(new KeyAdapter() {
             public void keyPressed(KeyEvent e) {
-                // Menu Navigation Controls
                 if (gameState == MENU) {
                     if(e.getKeyCode() == KeyEvent.VK_ENTER) {
+                        lives = 3; // Reset lives on new game
                         currentLevel = 1;
                         loadLevel(currentLevel);
                         gameState = PLAYING;
                     }
                     if(e.getKeyCode() == KeyEvent.VK_S) gameState = SETTINGS;
+                } else if (gameState == GAMEOVER) {
+                    if(e.getKeyCode() == KeyEvent.VK_ENTER) gameState = MENU;
                 } else if (gameState == SETTINGS) {
                     if(e.getKeyCode() == KeyEvent.VK_ESCAPE) gameState = MENU;
                 } else if (gameState == PLAYING) {
@@ -107,42 +119,41 @@ class ObbyGame extends JPanel implements Runnable {
 
     private void loadLevel(int level) {
         platforms.clear();
-        resetPlayer(); // Ensure player position and inputs are reset for new level
+        resetPlayer(); 
         
         switch(level) {
             case 1:
-                platforms.add(new Platform(0, 500, 400, 50, Color.DARK_GRAY, false));
-                platforms.add(new Platform(450, 400, 200, 20, Color.DARK_GRAY, false));
-                platforms.add(new Platform(700, 300, 150, 20, Color.YELLOW, false));
+                platforms.add(new Platform(0, 500, 500, 100, MARIO_GRASS, false));
+                platforms.add(new Platform(300, 440, 80, 60, MARIO_GRASS, false));
+                platforms.add(new Platform(550, 400, 120, 40, MARIO_BRICK, false));
+                platforms.add(new Platform(800, 340, 60, 260, MARIO_PIPE, true)); 
                 break;
             case 2:
-                platforms.add(new Platform(0, 500, 200, 50, Color.DARK_GRAY, false));
-                platforms.add(new Platform(200, 550, 400, 50, Color.RED, true)); 
-                platforms.add(new Platform(300, 350, 100, 20, Color.DARK_GRAY, false));
-                platforms.add(new Platform(650, 400, 150, 20, Color.YELLOW, false));
+                platforms.add(new Platform(0, 500, 200, 100, MARIO_GRASS, false));
+                platforms.add(new Platform(300, 360, 40, 40, Q_BLOCK, false));
+                platforms.add(new Platform(340, 360, 40, 40, MARIO_BRICK, false));
+                platforms.add(new Platform(550, 460, 240, 140, MARIO_GRASS, false));
+                platforms.add(new Platform(900, 340, 60, 260, MARIO_PIPE, true));
                 break;
             case 3:
-                platforms.add(new Platform(0, 500, 100, 50, Color.DARK_GRAY, false));
-                platforms.add(new Platform(200, 450, 50, 20, Color.DARK_GRAY, false));
-                platforms.add(new Platform(400, 400, 50, 20, Color.DARK_GRAY, false));
-                platforms.add(new Platform(600, 350, 50, 20, Color.DARK_GRAY, false));
-                platforms.add(new Platform(800, 300, 100, 20, Color.YELLOW, false));
+                platforms.add(new Platform(0, 500, 150, 100, MARIO_GRASS, false));
+                platforms.add(new Platform(300, 380, 40, 40, MARIO_BRICK, false));
+                platforms.add(new Platform(450, 300, 40, 40, Q_BLOCK, false));
+                platforms.add(new Platform(600, 220, 40, 40, MARIO_BRICK, false));
+                platforms.add(new Platform(850, 340, 60, 260, MARIO_PIPE, true));
                 break;
             case 4:
-                // Section 3 & 4 inspired layout
-                platforms.add(new Platform(0, 580, 1200, 20, Color.RED, true)); 
-                platforms.add(new Platform(50, 500, 100, 20, Color.DARK_GRAY, false));
-                platforms.add(new Platform(250, 400, 100, 20, Color.DARK_GRAY, false));
-                platforms.add(new Platform(450, 300, 100, 20, Color.DARK_GRAY, false));
-                platforms.add(new Platform(700, 250, 100, 20, Color.YELLOW, false));
+                platforms.add(new Platform(0, 500, 250, 100, MARIO_GRASS, false));
+                platforms.add(new Platform(400, 420, 100, 40, MARIO_BRICK, false));
+                platforms.add(new Platform(650, 320, 100, 40, MARIO_BRICK, false));
+                platforms.add(new Platform(900, 240, 60, 360, MARIO_PIPE, true));
                 break;
             case 5:
-                platforms.add(new Platform(0, 500, 100, 50, Color.DARK_GRAY, false));
-                platforms.add(new Platform(150, 580, 1500, 20, Color.RED, true));
-                platforms.add(new Platform(200, 420, 60, 20, Color.DARK_GRAY, false));
-                platforms.add(new Platform(400, 340, 60, 20, Color.DARK_GRAY, false));
-                platforms.add(new Platform(600, 420, 60, 20, Color.DARK_GRAY, false));
-                platforms.add(new Platform(850, 300, 200, 20, Color.YELLOW, false));
+                platforms.add(new Platform(0, 500, 80, 100, MARIO_GRASS, false));
+                platforms.add(new Platform(200, 400, 40, 40, Q_BLOCK, false));
+                platforms.add(new Platform(400, 320, 80, 40, MARIO_BRICK, false));
+                platforms.add(new Platform(600, 240, 40, 40, Q_BLOCK, false));
+                platforms.add(new Platform(850, 340, 60, 260, MARIO_PIPE, true));
                 break;
         }
     }
@@ -155,51 +166,34 @@ class ObbyGame extends JPanel implements Runnable {
     }
 
     private void updatePhysics() {
-        // Only run physics if the game is active
         if (gameState != PLAYING) return;
 
-        // MOVEMENT LOGIC: This uses the boolean variables to move the player left or right
-        if (left) playerX -= 6;
-        if (right) playerX += 6;
+        if (left) { playerX -= 6; facingRight = false; }
+        if (right) { playerX += 6; facingRight = true; }
 
-        // Gravity logic
         velY += GRAVITY;
         playerY += velY;
 
-        // JUMP LOGIC: Uses your provided code
         if (jumpPressed && !jumping) {
             velY = -12;
             jumping = true;
         }
 
-        boolean touchingLava = false;
-
-        // COLLISION LOGIC: Using Rectangles
         Rectangle playerBounds = new Rectangle(playerX, (int)playerY, 32, 32);
         for (Platform p : platforms) {
             Rectangle platBounds = new Rectangle(p.x, p.y, p.w, p.h);
-            
             if (playerBounds.intersects(platBounds)) {
-                // Check if the platform is lava
-                if(p.isLava) {
-                    touchingLava = true;
-                }
-
-                // Only trigger landing collision if falling DOWN into a non-lava platform
-                if (velY > 0 && !p.isLava) {
+                if (velY > 0) {
                     velY = 0;
-                    playerY = p.y - 32; // Snap to top
+                    playerY = p.y - 32;
                     jumping = false;
-
-                    // Win Condition check
-                    if (p.color == Color.YELLOW) {
+                    if (p.isGoal) {
                         if (currentLevel < MAX_LEVEL) {
                             currentLevel++;
                             loadLevel(currentLevel);
                         } else {
-                            JOptionPane.showMessageDialog(this, "You Beat the Obby!");
-                            resetPlayer();
-                            gameState = MENU; // Return to menu after win
+                            JOptionPane.showMessageDialog(this, "Victory!");
+                            gameState = MENU;
                         }
                         return;
                     }
@@ -207,27 +201,23 @@ class ObbyGame extends JPanel implements Runnable {
             }
         }
 
-        // --- DEATH & RESPAWN LOGIC ---
-        if (playerY > 600 || touchingLava) {
-            resetPlayer();
-            deaths++;
+        // --- LIVES SYSTEM LOGIC ---
+        if (playerY > 600) {
+            lives--;
+            if (lives > 0) {
+                resetPlayer();
+            } else {
+                gameState = GAMEOVER;
+            }
         }
 
-        // CAMERA CALCULATION
         cameraX = playerX - 300;
         if (cameraX < 0) cameraX = 0;
     }
 
     private void resetPlayer() {
-        playerX = 50;
-        playerY = 400;
-        velY = 0;
-        jumping = false;
-        cameraX = 0;
-        // Added to prevent automatic movement on reset
-        left = false;
-        right = false;
-        jumpPressed = false;
+        playerX = 50; playerY = 400; velY = 0;
+        jumping = false; cameraX = 0; left = false; right = false; jumpPressed = false;
     }
 
     @Override
@@ -235,74 +225,112 @@ class ObbyGame extends JPanel implements Runnable {
         while (true) {
             updatePhysics();
             repaint();
-            try { 
-                Thread.sleep(16); // Approx 60 FPS
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            try { Thread.sleep(16); } catch (Exception e) {}
         }
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        
-        if (gameState == MENU) {
-            drawMenu(g);
-        } else if (gameState == SETTINGS) {
-            drawSettings(g);
-        } else if (gameState == PLAYING) {
-            drawGame(g);
-        }
+        if (gameState == MENU) drawMenu(g);
+        else if (gameState == SETTINGS) drawSettings(g);
+        else if (gameState == PLAYING) drawGame(g);
+        else if (gameState == GAMEOVER) drawGameOver(g);
     }
 
     private void drawMenu(Graphics g) {
-        g.setColor(Color.CYAN);
-        g.setFont(new Font("Arial", Font.BOLD, 50));
-        g.drawString("PIXEL OBBY", 250, 200);
-        
-        g.setFont(new Font("Arial", Font.PLAIN, 20));
         g.setColor(Color.WHITE);
-        g.drawString("Press ENTER to Play", 300, 300);
-        g.drawString("Press S for Settings", 305, 340);
+        g.setFont(new Font("Monospaced", Font.BOLD, 50));
+        g.drawString("SUPER COLONZO WORLD", 130, 200);
+        g.setFont(new Font("Monospaced", Font.PLAIN, 20));
+        g.drawString("Press ENTER to Start", 290, 300);
+    }
+
+    private void drawGameOver(Graphics g) {
+        g.setColor(Color.RED);
+        g.setFont(new Font("Monospaced", Font.BOLD, 60));
+        g.drawString("GAME OVER", 240, 250);
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Monospaced", Font.PLAIN, 20));
+        g.drawString("Press ENTER for Menu", 290, 350);
     }
 
     private void drawSettings(Graphics g) {
         g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 30));
-        g.drawString("SETTINGS", 320, 150);
-        
-        g.setFont(new Font("Arial", Font.PLAIN, 18));
-        g.drawString("- Use A & D to move", 300, 250);
-        g.drawString("- Use SPACE to jump", 300, 280);
-        g.drawString("- Avoid Red (Lava)", 300, 310);
-        g.drawString("- Reach Yellow (Goal)", 300, 340);
-        
-        g.drawString("Press ESC to return", 315, 450);
+        g.setFont(new Font("Monospaced", Font.BOLD, 30));
+        g.drawString("CONTROLS", 320, 150);
+        g.drawString("- A/D to Run", 300, 250);
+        g.drawString("- SPACE to Jump", 300, 290);
     }
 
     private void drawGame(Graphics g) {
-        // In paintComponent:
-        // Translate the view based on cameraX to create a scrolling effect
-        g.translate(-cameraX, 0);
+        Graphics2D g2 = (Graphics2D) g;
 
-        // Draw Platforms
-        for (Platform p : platforms) {
-            g.setColor(p.color);
-            g.fillRect(p.x, p.y, p.w, p.h);
+        // Clouds with Shading
+        for(int i = 0; i < 10; i++) {
+            int cx = (i * 450) - (cameraX / 6);
+            g2.setColor(Color.WHITE);
+            g2.fillOval(cx, 100, 90, 45);
+            g2.fillOval(cx + 25, 80, 60, 50);
+            g2.setColor(new Color(240, 240, 240)); // Cloud Shadow
+            g2.fillOval(cx + 10, 130, 70, 10);
         }
 
-        // Draw Player
-        g.setColor(Color.CYAN);
-        g.fillRect(playerX, (int)playerY, 32, 32);
+        g2.translate(-cameraX, 0);
 
-        // Reset translation so the HUD (UI) stays fixed to the screen
-        g.translate(cameraX, 0);
+        for (Platform p : platforms) {
+            if (p.color == MARIO_GRASS) {
+                for (int tx = p.x; tx < p.x + p.w; tx += 20) {
+                    for (int ty = p.y; ty < p.y + p.h; ty += 20) {
+                        g2.setColor(ty == p.y ? MARIO_GRASS : DIRT_BROWN);
+                        g2.fillRect(tx, ty, 19, 19);
+                        // Block Detail
+                        g2.setColor(new Color(0,0,0,30));
+                        g2.drawRect(tx, ty, 19, 19);
+                    }
+                }
+            } else if (p.color == MARIO_BRICK) {
+                for (int bx = p.x; bx < p.x + p.w; bx += 20) {
+                    g2.setColor(MARIO_BRICK);
+                    g2.fillRect(bx, p.y, 18, p.h - 1);
+                    g2.setColor(new Color(80, 20, 5));
+                    g2.drawRect(bx, p.y, 18, p.h - 1); // Dark brick outline
+                }
+            } else if (p.color == Q_BLOCK) {
+                g2.setColor(Q_BLOCK);
+                g2.fillRect(p.x, p.y, p.w, p.h);
+                g2.setColor(Color.WHITE);
+                g2.drawRect(p.x, p.y, p.w, p.h);
+                g2.drawString("?", p.x + 14, p.y + 26);
+            } else if (p.color == MARIO_PIPE) {
+                g2.setColor(new Color(0, 100, 0));
+                g2.fillRect(p.x, p.y, p.w, p.h);
+                g2.setColor(MARIO_PIPE);
+                g2.fillRect(p.x + 5, p.y, p.w - 10, p.h);
+                g2.setColor(new Color(0, 80, 0));
+                g2.fillRect(p.x - 5, p.y, p.w + 10, 25);
+            }
+        }
+
+        // Mario Sprite
+        int x = playerX, y = (int)playerY;
+        g2.setColor(Color.BLUE); g2.fillRect(x + 4, y + 12, 24, 15);
+        g2.setColor(Color.RED); g2.fillRect(x + 2, y + 14, 28, 8);
+        g2.setColor(new Color(255, 200, 150)); g2.fillRect(x + 6, y + 2, 20, 12);
+        g2.setColor(Color.RED); g2.fillRect(x + 6, y, 20, 5);
+        if (facingRight) g2.fillRect(x + 18, y, 12, 5); else g2.fillRect(x + 2, y, 12, 5);
+        g2.setColor(Color.BLACK); if (facingRight) g2.fillRect(x + 20, y + 5, 4, 4); else g2.fillRect(x + 8, y + 5, 4, 4);
+
+        g2.translate(cameraX, 0);
         
-        // DRAW DEATH COUNTER & LEVEL
-        g.setColor(Color.WHITE);
-        g.drawString("Level: " + currentLevel, 20, 20);
-        g.drawString("Deaths: " + deaths, 20, 40);
-        g.drawString("ESC for Menu", 700, 20);
+        // HUD DESIGN
+        g2.setColor(Color.WHITE);
+        g2.setFont(new Font("Monospaced", Font.BOLD, 22));
+        g2.drawString("FAYE", 30, 40);
+        g2.drawString("WORLD 1-" + currentLevel, 30, 70);
+        
+        // LIVES DISPLAY
+        g2.setColor(Color.RED);
+        g2.drawString("♥ x " + lives, 30, 100);
     }
 }
