@@ -61,15 +61,17 @@ class ObbyGame extends JPanel implements Runnable {
         this.setFocusable(true);
 
         // --- Define Level Platforms ---
-        // Adding your requested platforms (Defaulting to Gray and not lava)
+        // Starting platforms
         platforms.add(new Platform(0, 500, 200, 50, Color.DARK_GRAY, false));
-        platforms.add(new Platform(300, 400, 150, 20, Color.DARK_GRAY, false));
-        platforms.add(new Platform(550, 300, 150, 20, Color.DARK_GRAY, false));
+        platforms.add(new Platform(250, 400, 150, 20, Color.DARK_GRAY, false));
+        platforms.add(new Platform(450, 300, 150, 20, Color.DARK_GRAY, false));
         
-        // Additional obstacles and Goal
-        platforms.add(new Platform(800, 550, 300, 20, Color.RED, true)); // Lava pit
-        platforms.add(new Platform(1100, 250, 150, 20, Color.DARK_GRAY, false));
-        platforms.add(new Platform(1400, 200, 100, 20, Color.YELLOW, false)); // GOAL
+        // NEW STEPPING STONE: Added this so the goal isn't floating too high
+        platforms.add(new Platform(650, 250, 100, 20, Color.DARK_GRAY, false));
+        
+        // Lava and Goal
+        platforms.add(new Platform(650, 550, 400, 20, Color.RED, true)); 
+        platforms.add(new Platform(850, 180, 100, 20, Color.YELLOW, false)); // Goal is now reachable via the stone
         
         this.addKeyListener(new KeyAdapter() {
             public void keyPressed(KeyEvent e) {
@@ -97,10 +99,11 @@ class ObbyGame extends JPanel implements Runnable {
         if (left) playerX -= 6;
         if (right) playerX += 6;
 
+        // Gravity logic
         velY += GRAVITY;
         playerY += velY;
 
-        // JUMP LOGIC
+        // JUMP LOGIC: Uses your provided code
         if (jumpPressed && !jumping) {
             velY = -12;
             jumping = true;
@@ -114,16 +117,18 @@ class ObbyGame extends JPanel implements Runnable {
             Rectangle platBounds = new Rectangle(p.x, p.y, p.w, p.h);
             
             if (playerBounds.intersects(platBounds)) {
-                // Check for lava touch
-                if(p.isLava) touchingLava = true;
+                // Check if the platform is lava
+                if(p.isLava) {
+                    touchingLava = true;
+                }
 
-                // Only land on top of solid platforms while falling
+                // Only trigger landing collision if falling DOWN into a non-lava platform
                 if (velY > 0 && !p.isLava) {
                     velY = 0;
-                    playerY = p.y - 32;
+                    playerY = p.y - 32; // Snap to top
                     jumping = false;
 
-                    // Win logic
+                    // Win Condition check
                     if (p.color == Color.YELLOW) {
                         JOptionPane.showMessageDialog(this, "You Beat the Obby!");
                         resetPlayer();
@@ -133,11 +138,11 @@ class ObbyGame extends JPanel implements Runnable {
             }
         }
 
-        // DEATH & RESPAWN LOGIC
+        // --- DEATH & RESPAWN LOGIC ---
         if (playerY > 600 || touchingLava) {
             playerX = 100;
             playerY = 100;
-            velY = 0;
+            velY = 0; // Stop downward momentum on respawn
             deaths++;
         }
 
@@ -158,7 +163,7 @@ class ObbyGame extends JPanel implements Runnable {
             updatePhysics();
             repaint();
             try { 
-                Thread.sleep(16); 
+                Thread.sleep(16); // Approx 60 FPS
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -186,8 +191,9 @@ class ObbyGame extends JPanel implements Runnable {
 
         // Reset translation so the HUD (UI) stays fixed to the screen
         g.translate(cameraX, 0);
+        
+        // DRAW DEATH COUNTER
         g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 18));
-        g.drawString("Deaths: " + deaths, 20, 30);
+        g.drawString("Deaths: " + deaths, 20, 20);
     }
 }
