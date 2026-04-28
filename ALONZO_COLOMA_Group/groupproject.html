@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Super Colonzo World Enhanced</title>
+<title>Super Colonzo World - Randomized</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#0a0a1a;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:'Courier New',monospace;overflow:hidden}
@@ -58,8 +58,8 @@ const POWERUPS={
   SHIELD:{color:'#aa88ff',glow:'#6644cc',label:'SHIELD',icon:'◆',duration:350}
 };
 
-// ---- LEVEL DATA ----
-const LEVELS=[
+// ---- BASE LEVEL DATA (PLATFORMS ONLY) ----
+const LEVEL_BASES=[
   { // Level 1 - Intro
     bg:'#0d1a3a',
     platforms:[
@@ -70,10 +70,10 @@ const LEVELS=[
       {x:820,y:250,w:60,h:20,t:'wood'},
       {x:980,y:200,w:60,h:300,t:'pipe'},
     ],
-    powerups:[
-      {x:360,y:395,type:'SPEED',collected:false},
-    ],
-    goal:{x:990,y:190,w:40,h:20}
+    goal:{x:990,y:190,w:40,h:20},
+    powerupSpots:[
+      {x:360,y:395},{x:500,y:330},{x:680,y:270}
+    ]
   },
   { // Level 2
     bg:'#1a0d3a',
@@ -87,11 +87,10 @@ const LEVELS=[
       {x:700,y:230,w:80,h:20,t:'stone'},
       {x:900,y:160,w:60,h:340,t:'pipe'},
     ],
-    powerups:[
-      {x:245,y:375,type:'JUMP',collected:false},
-      {x:555,y:275,type:'SHIELD',collected:false},
-    ],
-    goal:{x:910,y:145,w:40,h:20}
+    goal:{x:910,y:145,w:40,h:20},
+    powerupSpots:[
+      {x:245,y:375},{x:370,y:305},{x:555,y:275},{x:700,y:205}
+    ]
   },
   { // Level 3
     bg:'#0d2a1a',
@@ -106,12 +105,10 @@ const LEVELS=[
       {x:700,y:180,w:80,h:20,t:'wood'},
       {x:850,y:130,w:60,h:360,t:'pipe'},
     ],
-    powerups:[
-      {x:185,y:395,type:'SPEED',collected:false},
-      {x:425,y:135,type:'JUMP',collected:false},
-      {x:545,y:215,type:'SHIELD',collected:false},
-    ],
-    goal:{x:860,y:115,w:40,h:20}
+    goal:{x:860,y:115,w:40,h:20},
+    powerupSpots:[
+      {x:185,y:395},{x:290,y:330},{x:180,y:260},{x:425,y:135},{x:545,y:215},{x:700,y:155}
+    ]
   }
 ];
 
@@ -119,6 +116,32 @@ let currentLevel=0;
 let levelData=null;
 let cameraX=0;
 let powerupsInLevel=[];
+
+// ---- UTILITY: RANDOMIZE POWERUPS ----
+function generateRandomPowerups(spots){
+  let powerupTypes=['SPEED','JUMP','SHIELD'];
+  let generated=[];
+  
+  // Shuffle spots
+  let shuffledSpots=[...spots].sort(()=>Math.random()-0.5);
+  
+  // Select random number of powerups (2-3 per level)
+  let count=Math.floor(Math.random()*2)+2;
+  count=Math.min(count,shuffledSpots.length);
+  
+  for(let i=0;i<count;i++){
+    let spot=shuffledSpots[i];
+    let type=powerupTypes[Math.floor(Math.random()*powerupTypes.length)];
+    generated.push({
+      x:spot.x+Math.random()*20-10,
+      y:spot.y+Math.random()*20-10,
+      type:type,
+      collected:false
+    });
+  }
+  
+  return generated;
+}
 
 // ---- BACKGROUND ELEMENTS INIT ----
 function initBackgroundElements(){
@@ -216,7 +239,6 @@ function drawPixelText(text,x,y,size=16,color='#fff',align='left'){
   ctx.fillStyle=color;
   ctx.textAlign=align;
   ctx.textBaseline='top';
-  // pixelate shadow
   ctx.fillStyle='#000a';
   ctx.fillText(text,x+2,y+2);
   ctx.fillStyle=color;
@@ -226,8 +248,13 @@ function drawPixelText(text,x,y,size=16,color='#fff',align='left'){
 
 // ---- LOAD LEVEL ----
 function loadLevel(idx){
-  levelData=LEVELS[idx];
-  powerupsInLevel=levelData.powerups.map(p=>({...p}));
+  let base=LEVEL_BASES[idx];
+  levelData={
+    bg:base.bg,
+    platforms:base.platforms,
+    goal:base.goal
+  };
+  powerupsInLevel=generateRandomPowerups(base.powerupSpots);
   resetPlayer();
   cameraX=0;
   initBackgroundElements();
@@ -291,7 +318,6 @@ function drawBackground(){
     ctx.beginPath();
     ctx.moveTo(mx,mt.y+mt.h);
     
-    // Simple jagged peaks
     for(let i=0;i<=mt.peaks;i++){
       let px=mx+(mt.w/mt.peaks)*i;
       let py=mt.y+(Math.random()-0.5)*mt.h*0.3;
@@ -302,7 +328,6 @@ function drawBackground(){
     ctx.closePath();
     ctx.fill();
     
-    // Snow cap highlight
     ctx.fillStyle=mt.color.replace('0.4','0.7');
     ctx.beginPath();
     ctx.moveTo(mx,mt.y+mt.h);
@@ -320,7 +345,6 @@ function drawBackground(){
   bgIslands.forEach(isl=>{
     let ix=((isl.x-cameraX*isl.parallax)%2400+2400)%2400;
     
-    // Shadow
     ctx.globalAlpha=0.4;
     ctx.fillStyle=isl.shadowColor;
     ctx.beginPath();
@@ -328,7 +352,6 @@ function drawBackground(){
     ctx.fill();
     ctx.globalAlpha=1;
     
-    // Island body with gradient
     let igrd=ctx.createLinearGradient(ix,isl.y,ix,isl.y+isl.h);
     igrd.addColorStop(0,isl.color);
     igrd.addColorStop(1,isl.color.replace('35','25'));
@@ -341,7 +364,6 @@ function drawBackground(){
     ctx.ellipse(0,0,isl.w*0.5,isl.h*0.4,0,0,Math.PI*2);
     ctx.fill();
     
-    // Shiny highlight
     ctx.globalAlpha=0.3;
     ctx.fillStyle='#ffffff';
     ctx.beginPath();
@@ -350,7 +372,6 @@ function drawBackground(){
     ctx.restore();
     ctx.globalAlpha=1;
     
-    // Vegetation wisps
     ctx.globalAlpha=0.2;
     ctx.fillStyle=isl.color.replace('35','60');
     for(let v=0;v<3;v++){
@@ -374,11 +395,9 @@ function drawBackground(){
   bgClouds.forEach(c=>{
     let cx=((c.x-cameraX*c.speed*0.25)%2400+2400)%2400;
     
-    // Multi-layer cloud effect
     ctx.globalAlpha=c.density*0.4;
     ctx.fillStyle=c.color;
     
-    // Cloud shape from multiple ellipses
     let cloudParticles=3+Math.floor(c.w/40);
     for(let cp=0;cp<cloudParticles;cp++){
       let cpx=cx+(cp/cloudParticles)*c.w;
@@ -389,7 +408,6 @@ function drawBackground(){
       ctx.fill();
     }
     
-    // Cloud shine
     ctx.globalAlpha=c.density*0.15;
     ctx.fillStyle='#ffffff';
     ctx.beginPath();
@@ -398,7 +416,7 @@ function drawBackground(){
   });
   ctx.globalAlpha=1;
 
-  // ===== PIXEL GRID OVERLAY (SUBTLE) =====
+  // ===== PIXEL GRID OVERLAY =====
   ctx.globalAlpha=0.02;
   ctx.strokeStyle='#88aaff';
   ctx.lineWidth=1;
@@ -437,39 +455,31 @@ function drawPlatform(plat){
   if(px+pw<-10||px>W+10)return;
 
   if(plat.t==='grass'){
-    // dirt
     ctx.fillStyle='#5c3a1e';
     ctx.fillRect(px,py+TILE,pw,ph-TILE);
-    // pixel detail on dirt
     ctx.fillStyle='#3d2510';
     for(let tx=0;tx<pw;tx+=16){
       ctx.fillRect(px+tx,py+TILE,14,8);
       ctx.fillRect(px+tx+8,py+TILE+12,10,6);
     }
-    // grass top
     ctx.fillStyle='#2ecc40';
     ctx.fillRect(px,py,pw,TILE);
     ctx.fillStyle='#27ae34';
     for(let tx=0;tx<pw;tx+=8){ctx.fillRect(px+tx,py,6,TILE);}
-    // grass top highlight
     ctx.fillStyle='#4ef060';
     ctx.fillRect(px,py,pw,4);
-    // grass blades
     ctx.fillStyle='#3edf50';
     for(let tx=4;tx<pw;tx+=10){
       ctx.fillRect(px+tx,py-4,4,8);
       ctx.fillRect(px+tx+5,py-6,3,10);
     }
-    // ground border
     ctx.strokeStyle='#1a5c20';ctx.lineWidth=2;
     ctx.strokeRect(px,py,pw,ph);
   } else if(plat.t==='brick'){
     ctx.fillStyle='#c84e0c';
     ctx.fillRect(px,py,pw,ph);
-    // mortar lines H
     ctx.fillStyle='#8b2800';
     for(let ry=0;ry<ph;ry+=12){ctx.fillRect(px,py+ry,pw,2);}
-    // mortar lines V (offset alternating rows)
     for(let ry=0;ry<ph;ry+=12){
       let offset=((ry/12)%2===0)?0:16;
       for(let rx=offset;rx<pw;rx+=32){ctx.fillRect(px+rx,py+ry,2,10);}
@@ -479,13 +489,10 @@ function drawPlatform(plat){
   } else if(plat.t==='wood'){
     ctx.fillStyle='#c8860c';
     ctx.fillRect(px,py,pw,ph);
-    // wood grain
     ctx.fillStyle='#a06008';
     for(let ry=4;ry<ph;ry+=6){ctx.fillRect(px,py+ry,pw,2);}
-    // highlight top
     ctx.fillStyle='#ffaa30';
     ctx.fillRect(px,py,pw,4);
-    // "?" if small platform
     if(pw<=70&&ph<=24){
       ctx.fillStyle='#ffe040';
       ctx.font='bold 14px "Courier New"';ctx.textAlign='center';ctx.textBaseline='middle';
@@ -504,13 +511,9 @@ function drawPlatform(plat){
     ctx.fillRect(px,py,pw,3);
     ctx.strokeStyle='#445566';ctx.lineWidth=1;ctx.strokeRect(px,py,pw,ph);
   } else if(plat.t==='pipe'){
-    // outer dark
     ctx.fillStyle='#156a15';ctx.fillRect(px,py,pw,ph);
-    // main green
     ctx.fillStyle='#28b428';ctx.fillRect(px+6,py,pw-12,ph);
-    // highlight stripe
     ctx.fillStyle='#44ee44';ctx.fillRect(px+10,py,8,ph);
-    // pipe head
     ctx.fillStyle='#1a8a1a';ctx.fillRect(px-6,py,pw+12,28);
     ctx.fillStyle='#33cc33';ctx.fillRect(px-2,py+2,pw+4,22);
     ctx.fillStyle='#55ff55';ctx.fillRect(px+4,py+4,12,16);
@@ -522,14 +525,12 @@ function drawPlatform(plat){
 function drawGoal(){
   let g=levelData.goal;
   let gx=g.x-cameraX,gy=g.y;
-  // glowing effect
   let pulse=0.7+0.3*Math.sin(frameCount*0.08);
   ctx.save();
   ctx.globalAlpha=pulse*0.4;
   ctx.fillStyle='#ffff00';
   ctx.beginPath();ctx.arc(gx+20,gy,30,0,Math.PI*2);ctx.fill();
   ctx.globalAlpha=1;
-  // star shape
   ctx.fillStyle='#ffff00';
   for(let i=0;i<8;i++){
     let a=i/8*Math.PI*2+frameCount*0.04;
@@ -550,23 +551,18 @@ function drawPowerup(pu){
   let glow=0.5+0.5*Math.sin(frameCount*0.1);
 
   ctx.save();
-  // glow halo
   ctx.globalAlpha=glow*0.4;
   ctx.fillStyle=def.glow;
   ctx.beginPath();ctx.arc(px+12,py+12+bob,22,0,Math.PI*2);ctx.fill();
   ctx.globalAlpha=1;
 
-  // box
   ctx.fillStyle=def.color;
   ctx.fillRect(px,py+bob,24,24);
-  // shine
   ctx.fillStyle='#ffffff88';
   ctx.fillRect(px+2,py+bob+2,8,4);
-  // border
   ctx.strokeStyle='#ffffff';ctx.lineWidth=2;
   ctx.strokeRect(px,py+bob,24,24);
 
-  // icon
   ctx.font='14px serif';ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillStyle='#fff';
   ctx.fillText(def.icon,px+12,py+12+bob);
@@ -581,13 +577,11 @@ function drawPlayer(){
   let blink=p.invincible>0&&Math.floor(frameCount/4)%2===0;
   if(blink){ctx.globalAlpha=0.4;}
 
-  // walk animation
   let walkCycle=p.onGround&&(p.vx!==0)?Math.sin(frameCount*0.3)*4:0;
   let bodyBob=p.onGround?(Math.abs(Math.sin(frameCount*0.3))*2):0;
   let ay=y+bodyBob;
 
   ctx.save();
-  // flip for direction
   ctx.translate(x+14,0);
   ctx.scale(f,1);
   ctx.translate(-14,0);
@@ -595,10 +589,8 @@ function drawPlayer(){
   // === JETPACK ===
   ctx.fillStyle='#334466';
   ctx.fillRect(6,ay+12,10,18);
-  // jetpack details
   ctx.fillStyle='#556688';ctx.fillRect(8,ay+14,6,6);
   ctx.fillStyle='#223355';ctx.fillRect(7,ay+20,8,8);
-  // thruster glow (when jumping)
   if(!p.onGround||p.jumpAnim>0){
     let tsize=4+Math.random()*6;
     ctx.fillStyle='#ff8800';ctx.fillRect(8,ay+30,5,tsize);
@@ -611,11 +603,9 @@ function drawPlayer(){
 
   // === BODY / SUIT ===
   ctx.fillStyle='#2244aa';
-  ctx.fillRect(4,ay+14,20,18); // torso
-  // suit highlight
+  ctx.fillRect(4,ay+14,20,18);
   ctx.fillStyle='#3366dd';
   ctx.fillRect(5,ay+15,8,8);
-  // suit chest logo
   ctx.fillStyle='#00ddff';
   ctx.fillRect(9,ay+17,6,6);
   ctx.fillStyle='#ffffff88';ctx.fillRect(10,ay+18,2,2);
@@ -623,9 +613,8 @@ function drawPlayer(){
   // === LEGS ===
   let lkick=walkCycle;
   ctx.fillStyle='#1a3388';
-  ctx.fillRect(4,ay+30,8,10+lkick); // left leg
-  ctx.fillRect(14,ay+30,8,10-lkick); // right leg
-  // boots
+  ctx.fillRect(4,ay+30,8,10+lkick);
+  ctx.fillRect(14,ay+30,8,10-lkick);
   ctx.fillStyle='#88aaff';
   ctx.fillRect(3,ay+38+lkick,10,6);
   ctx.fillRect(13,ay+38-lkick,10,6);
@@ -634,22 +623,19 @@ function drawPlayer(){
   // === ARMS ===
   let armSwing=walkCycle*0.8;
   ctx.fillStyle='#2244aa';
-  ctx.fillRect(-2,ay+16+armSwing,6,12); // left arm
-  ctx.fillRect(22,ay+16-armSwing,6,12); // right arm
-  // gloves
+  ctx.fillRect(-2,ay+16+armSwing,6,12);
+  ctx.fillRect(22,ay+16-armSwing,6,12);
   ctx.fillStyle='#aaccff';
   ctx.fillRect(-3,ay+26+armSwing,8,6);
   ctx.fillRect(21,ay+26-armSwing,8,6);
 
   // === HEAD / HELMET ===
   ctx.fillStyle='#1a3388';
-  ctx.fillRect(3,ay,22,18); // helmet
-  // helmet top dome
+  ctx.fillRect(3,ay,22,18);
   ctx.fillStyle='#2255cc';
   ctx.fillRect(5,ay-4,18,6);
   ctx.fillRect(7,ay-6,14,4);
   ctx.fillRect(9,ay-8,10,4);
-  // antenna
   ctx.fillStyle='#aaccff';ctx.fillRect(17,ay-12,2,8);
   let antBlinkColor=Math.floor(frameCount/15)%2===0?'#ff4444':'#ff8888';
   ctx.fillStyle=antBlinkColor;ctx.fillRect(15,ay-14,6,4);
@@ -658,10 +644,8 @@ function drawPlayer(){
   let visorColor=p.shield>0?'#aa88ff':'#00ddff';
   ctx.fillStyle=visorColor;
   ctx.fillRect(6,ay+4,16,9);
-  // visor shine
   ctx.fillStyle='#ffffff66';
   ctx.fillRect(7,ay+5,5,3);
-  // visor glow line
   ctx.fillStyle=p.shield>0?'#cc99ff':'#44ffff';
   ctx.fillRect(6,ay+4,16,2);
 
@@ -710,26 +694,21 @@ function updatePlayer(){
   p.onGround=false;
   levelData.platforms.forEach(plat=>{
     if(rect(p.x,p.y,p.w,p.h,plat.x,plat.y,plat.w,plat.h)){
-      // coming from above
       if(p.vy>0&&p.y+p.h-p.vy<=plat.y+4){
         p.y=plat.y-p.h;p.vy=0;p.onGround=true;p.hasDoubleJump=true;
         if(plat.t==='pipe'){
-          // goal trigger
           let g=levelData.goal;
           if(rect(p.x,p.y,p.w,p.h,g.x,g.y,g.w,g.h)||p.x+p.w>plat.x+6){
             nextLevel();return;
           }
         }
       }
-      // from side
       else if(p.vx>0&&p.x+p.w-p.vx<=plat.x){p.x=plat.x-p.w;p.vx=0;}
       else if(p.vx<0&&p.x-p.vx>=plat.x+plat.w){p.x=plat.x+plat.w;p.vx=0;}
-      // from below
       else if(p.vy<0){p.vy=0;}
     }
   });
 
-  // Goal collision (on pipe top)
   let g=levelData.goal;
   if(rect(p.x,p.y,p.w,p.h,g.x,g.y,g.w+60,g.h+60)){
     nextLevel();
@@ -758,14 +737,13 @@ function updatePlayer(){
     else{resetPlayer();}
   }
 
-  // Camera
   cameraX=clamp(p.x-200,0,3000);
 }
 
 function nextLevel(){
   spawnParticles(p.x+14,p.y,'#ffff44',30,6);
   currentLevel++;
-  if(currentLevel>=LEVELS.length){state=STATES.WIN;}
+  if(currentLevel>=LEVEL_BASES.length){state=STATES.WIN;}
   else{loadLevel(currentLevel);}
 }
 
@@ -790,11 +768,9 @@ document.addEventListener('keyup',e=>{keys[e.key]=false;});
 
 // ---- HUD ----
 function drawHUD(){
-  // lives
   for(let i=0;i<3;i++){
     let alive=i<p.lives;
     ctx.fillStyle=alive?'#ff4444':'#444';
-    // heart pixel art
     let hx=20+i*36,hy=20;
     ctx.fillRect(hx+4,hy,8,4);ctx.fillRect(hx+16,hy,8,4);
     ctx.fillRect(hx,hy+4,28,8);ctx.fillRect(hx+2,hy+12,24,4);
@@ -805,10 +781,8 @@ function drawHUD(){
     }
   }
 
-  // level indicator
   drawPixelText('WORLD '+(currentLevel+1)+'-'+((currentLevel+1)),W/2-60,16,18,'#ffee44','left');
 
-  // active powerup display
   let icons=[];
   if(p.speedBoost>0)icons.push({label:'SPD',color:'#ffcc00',bar:p.speedBoost/POWERUPS.SPEED.duration});
   if(p.shield>0)icons.push({label:'SHD',color:'#aa88ff',bar:p.shield/POWERUPS.SHIELD.duration});
@@ -848,24 +822,20 @@ function updateParticles(){
 // ---- MENU ----
 function drawMenu(){
   drawBackground();
-  // title box
   let pulse=0.85+0.15*Math.sin(frameCount*0.05);
   ctx.save();
   ctx.translate(W/2,H/2-80);ctx.scale(pulse,pulse);
   ctx.fillStyle='#000c';ctx.fillRect(-260,-50,520,100);
   ctx.strokeStyle='#5533ff';ctx.lineWidth=3;ctx.strokeRect(-260,-50,520,100);
   ctx.strokeStyle='#00ddff';ctx.lineWidth=1;ctx.strokeRect(-256,-46,512,92);
-  // big title pixel chars
   drawPixelText('SUPER COLONZO WORLD',-220,-28,30,'#ffee44','left');
   drawPixelText('ADVENTURE',-100,14,22,'#ff8888','left');
   ctx.restore();
 
-  // info
   drawPixelText('[ ENTER ] to Start',W/2-100,H/2+30,16,'#aaffee','left');
   drawPixelText('ARROWS / WASD = Move    SPACE = Jump',W/2-195,H/2+60,13,'#8899aa','left');
-  drawPixelText('Collect power-ups to gain abilities!',W/2-185,H/2+82,13,'#88ccff','left');
+  drawPixelText('Power-ups spawn randomly each level!',W/2-185,H/2+82,13,'#88ccff','left');
 
-  // Demo player preview
   ctx.save();ctx.translate(W/2-80,H/2-10);
   let demoP={x:0,y:0,vx:0,vy:0,onGround:true,facingR:true,invincible:0,speedBoost:0,shield:0,hasDoubleJump:false,doubleJump:true,jumpAnim:0};
   let saved={...p};
@@ -876,7 +846,6 @@ function drawMenu(){
   cameraX=saved.x-200;
   ctx.restore();
 
-  // powerup legend
   let pvs=Object.entries(POWERUPS);
   pvs.forEach(([k,def],i)=>{
     let lx=W/2-130+i*140,ly=H-80;
@@ -902,7 +871,6 @@ function drawGameOver(){
 // ---- WIN ----
 function drawWin(){
   drawBackground();
-  // confetti
   for(let i=0;i<20;i++){
     ctx.fillStyle=['#ffee44','#ff4488','#44ffcc','#88aaff'][i%4];
     ctx.fillRect(
@@ -928,17 +896,11 @@ function loop(){
   else{
     updatePlayer();
     drawBackground();
-    // draw platforms
     levelData.platforms.forEach(pl=>drawPlatform(pl));
-    // draw powerups
     powerupsInLevel.forEach(pu=>drawPowerup(pu));
-    // draw goal
     drawGoal();
-    // draw player
     drawPlayer();
-    // particles
     updateParticles();
-    // HUD
     drawHUD();
   }
 
