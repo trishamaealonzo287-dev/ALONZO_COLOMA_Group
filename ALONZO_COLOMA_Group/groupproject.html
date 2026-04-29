@@ -763,9 +763,22 @@ function updatePlayer(){
   if(state!==STATES.PLAY)return;
 
   let spd=SPD*(1+(p.speedBoost>0?0.8:0));
-  if(keys['ArrowLeft']||keys['a']){p.vx=-spd;p.facingR=false;}
-  else if(keys['ArrowRight']||keys['d']){p.vx=spd;p.facingR=true;}
-  else{p.vx*=0.7;}
+  
+  // Fixed WASD and Arrow key handling
+  let moveLeft=(keys['ArrowLeft']||keys['a']||keys['A']);
+  let moveRight=(keys['ArrowRight']||keys['d']||keys['D']);
+  
+  if(moveLeft){
+    p.vx=-spd;
+    p.facingR=false;
+  }
+  else if(moveRight){
+    p.vx=spd;
+    p.facingR=true;
+  }
+  else{
+    p.vx*=0.7;
+  }
 
   p.vy+=GRAV;
   p.x+=p.vx;
@@ -831,6 +844,7 @@ function nextLevel(){
 // ---- INPUT ----
 document.addEventListener('keydown',e=>{
   keys[e.key]=true;
+  
   if(state===STATES.MENU&&(e.key==='Enter'||e.key===' ')){
     gameResetCount++;
     currentLevel=0;p.lives=3;
@@ -846,9 +860,19 @@ document.addEventListener('keydown',e=>{
     state=STATES.MENU;
   }
   if(state===STATES.PLAY){
-    if((e.key===' '||e.key==='ArrowUp'||e.key==='w')){
-      if(p.onGround){p.vy=JUMP;p.onGround=false;p.jumpAnim=8;}
-      else if(p.hasDoubleJump&&p.doubleJump){p.vy=JUMP*0.85;p.doubleJump=false;p.jumpAnim=8;spawnParticles(p.x+14,p.y+p.h,'#00ddff',10,3);}
+    // Fixed jump input with proper key codes
+    if(e.key===' '||e.key==='ArrowUp'||e.key==='w'||e.key==='W'){
+      if(p.onGround){
+        p.vy=JUMP;
+        p.onGround=false;
+        p.jumpAnim=8;
+      }
+      else if(p.hasDoubleJump&&p.doubleJump){
+        p.vy=JUMP*0.85;
+        p.doubleJump=false;
+        p.jumpAnim=8;
+        spawnParticles(p.x+14,p.y+p.h,'#00ddff',10,3);
+      }
     }
     if(e.key==='Escape'){
       gameResetCount++;
@@ -856,9 +880,13 @@ document.addEventListener('keydown',e=>{
       currentLevel=0;
     }
   }
+  
   e.preventDefault();
 });
-document.addEventListener('keyup',e=>{keys[e.key]=false;});
+
+document.addEventListener('keyup',e=>{
+  keys[e.key]=false;
+});
 
 // ---- HUD ----
 function drawHUD(){
@@ -964,7 +992,7 @@ function drawMenu(){
 
   let instructY=centerY+50;
   drawPixelText('[ ENTER ] to Start',GAME_W/2,instructY,16,'#7dd400','center');
-  drawPixelText('ARROWS/WASD: Move   SPACE: Jump',GAME_W/2,instructY+24,13,'#87ceeb','center');
+  drawPixelText('ARROWS/WASD: Move   SPACE/W: Jump',GAME_W/2,instructY+24,13,'#87ceeb','center');
   drawPixelText('Power-ups spawn randomly each reset!',GAME_W/2,instructY+42,13,COLORS.textCyan,'center');
   drawPixelText('Press ESC to return to menu',GAME_W/2,instructY+60,12,'#87ceeb','center');
 
