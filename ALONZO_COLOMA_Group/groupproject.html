@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Super Colonzo World - 7 Levels</title>
+<title>Super Colonzo World - 5 Levels + Boss</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{
@@ -79,7 +79,7 @@ ctx.imageSmoothingEnabled=false;
 
 // ---- CONSTANTS ----
 const GAME_W=800,GAME_H=560,TILE=32,GRAV=0.45,JUMP=-11,SPD=4;
-const STATES={MENU:0,PLAY:1,GAMEOVER:2,WIN:3};
+const STATES={MENU:0,PLAY:1,GAMEOVER:2,WIN:3,BOSS:4};
 
 // ---- ENHANCED COLOR PALETTE ----
 const COLORS={
@@ -136,6 +136,18 @@ let p={
   jumpAnim:0
 };
 
+// ---- BOSS STATE ----
+let boss={
+  x:700,y:150,w:50,h:50,
+  health:5,
+  maxHealth:5,
+  vx:0,vy:0,
+  jumpTimer:0,
+  attackTimer:0,
+  pattern:0,
+  projectiles:[]
+};
+
 // ---- POWERUP TYPES ----
 const POWERUPS={
   SPEED:{color:'#ffcc00',glow:'#ff8800',label:'SPEED',icon:'⚡',duration:300},
@@ -143,11 +155,12 @@ const POWERUPS={
   SHIELD:{color:'#aa88ff',glow:'#6644cc',label:'SHIELD',icon:'◆',duration:350}
 };
 
-// ---- BASE LEVEL DATA - 7 LEVELS ----
+// ---- BASE LEVEL DATA - 5 LEVELS + BOSS ----
 const LEVEL_BASES=[
   // Level 1 - Easy Start
   {
     name:'Grassy Fields',
+    isBoss:false,
     bg:{type:'sunset',skyTop:'#1f3a7d',skyMid:'#2a5fa8',skyBot:'#7c52a6',sunColor:'#ffa500'},
     platforms:[
       {x:0,y:480,w:300,h:80,t:'grass'},
@@ -165,6 +178,7 @@ const LEVEL_BASES=[
   // Level 2 - Stone Path
   {
     name:'Stone Path',
+    isBoss:false,
     bg:{type:'sunset',skyTop:'#0f3460',skyMid:'#2a5fa8',skyBot:'#4a90e2',sunColor:'#ff8800'},
     platforms:[
       {x:0,y:480,w:180,h:80,t:'grass'},
@@ -184,6 +198,7 @@ const LEVEL_BASES=[
   // Level 3 - Forest Trail
   {
     name:'Forest Trail',
+    isBoss:false,
     bg:{type:'sunset',skyTop:'#1a4d2e',skyMid:'#2d8659',skyBot:'#45d494',sunColor:'#ffff00'},
     platforms:[
       {x:0,y:480,w:120,h:80,t:'grass'},
@@ -204,6 +219,7 @@ const LEVEL_BASES=[
   // Level 4 - Sky Bridge
   {
     name:'Sky Bridge',
+    isBoss:false,
     bg:{type:'sunset',skyTop:'#2a1a4a',skyMid:'#4a2a8a',skyBot:'#7c52a6',sunColor:'#ffaa00'},
     platforms:[
       {x:0,y:480,w:100,h:80,t:'grass'},
@@ -220,9 +236,10 @@ const LEVEL_BASES=[
       {x:155,y:355},{x:285,y:275},{x:425,y:225},{x:575,y:295},{x:705,y:195},{x:855,y:255}
     ]
   },
-  // Level 5 - Brick Fortress
+  // Level 5 - Brick Fortress (Final Boss Preparation)
   {
     name:'Brick Fortress',
+    isBoss:false,
     bg:{type:'sunset',skyTop:'#3a1a1a',skyMid:'#6a2a2a',skyBot:'#8a3a3a',sunColor:'#ff6633'},
     platforms:[
       {x:0,y:480,w:140,h:80,t:'grass'},
@@ -240,52 +257,27 @@ const LEVEL_BASES=[
       {x:205,y:375},{x:355,y:305},{x:505,y:375},{x:205,y:225},{x:455,y:215},{x:655,y:275},{x:855,y:175}
     ]
   },
-  // Level 6 - Chaos Canyon
+  // Level 6 - BOSS LEVEL
   {
-    name:'Chaos Canyon',
-    bg:{type:'sunset',skyTop:'#1a1a2e',skyMid:'#16213e',skyBot:'#0f3460',sunColor:'#ffcc00'},
+    name:'Dark Overlord - BOSS BATTLE',
+    isBoss:true,
+    bg:{type:'sunset',skyTop:'#1a0a2e',skyMid:'#3a1a4e',skyBot:'#5a2a6e',sunColor:'#ff00ff'},
     platforms:[
-      {x:0,y:480,w:80,h:80,t:'grass'},
-      {x:130,y:400,w:50,h:20,t:'wood'},
-      {x:230,y:340,w:60,h:20,t:'brick'},
-      {x:140,y:280,w:50,h:20,t:'stone'},
-      {x:280,y:250,w:55,h:20,t:'wood'},
-      {x:380,y:360,w:65,h:20,t:'brick'},
-      {x:520,y:290,w:70,h:20,t:'stone'},
-      {x:340,y:180,w:60,h:20,t:'wood'},
-      {x:480,y:150,w:75,h:20,t:'brick'},
-      {x:650,y:240,w:80,h:20,t:'stone'},
-      {x:800,y:180,w:70,h:20,t:'wood'},
-      {x:950,y:300,w:80,h:20,t:'brick'},
-      {x:1100,y:140,w:60,h:380,t:'pipe'},
+      {x:0,y:480,w:200,h:80,t:'grass'},
+      {x:300,y:420,w:100,h:20,t:'stone'},
+      {x:500,y:380,w:120,h:20,t:'brick'},
+      {x:200,y:300,w:90,h:20,t:'wood'},
+      {x:450,y:320,w:100,h:20,t:'stone'},
+      {x:700,y:360,w:110,h:20,t:'brick'},
+      {x:350,y:200,w:100,h:20,t:'wood'},
+      {x:650,y:240,w:120,h:20,t:'stone'},
+      {x:0,y:80,w:150,h:20,t:'brick'},
+      {x:300,y:100,w:140,h:20,t:'wood'},
+      {x:600,y:80,w:150,h:20,t:'stone'},
     ],
-    goal:{x:1110,y:130,w:40,h:20},
+    goal:{x:800,y:-50,w:40,h:20},
     powerupSpots:[
-      {x:135,y:375},{x:235,y:315},{x:145,y:255},{x:285,y:225},{x:385,y:335},{x:525,y:265},{x:345,y:155},{x:485,y:125},{x:655,y:215},{x:805,y:155},{x:955,y:275}
-    ]
-  },
-  // Level 7 - Final Summit
-  {
-    name:'Final Summit',
-    bg:{type:'sunset',skyTop:'#0a0f1f',skyMid:'#1a3a5a',skyBot:'#2a5a9a',sunColor:'#ffff00'},
-    platforms:[
-      {x:0,y:480,w:120,h:80,t:'grass'},
-      {x:200,y:420,w:70,h:20,t:'wood'},
-      {x:350,y:360,w:80,h:20,t:'brick'},
-      {x:170,y:300,w:60,h:20,t:'stone'},
-      {x:400,y:280,w:75,h:20,t:'wood'},
-      {x:580,y:350,w:70,h:20,t:'brick'},
-      {x:280,y:200,w:80,h:20,t:'stone'},
-      {x:520,y:180,w:90,h:20,t:'wood'},
-      {x:720,y:240,w:85,h:20,t:'brick'},
-      {x:380,y:120,w:70,h:20,t:'stone'},
-      {x:650,y:100,w:100,h:20,t:'wood'},
-      {x:900,y:220,w:80,h:20,t:'brick'},
-      {x:1100,y:80,w:60,h:400,t:'pipe'},
-    ],
-    goal:{x:1110,y:70,w:40,h:20},
-    powerupSpots:[
-      {x:205,y:395},{x:355,y:335},{x:175,y:275},{x:405,y:255},{x:585,y:325},{x:285,y:175},{x:525,y:155},{x:725,y:215},{x:385,y:95},{x:655,y:75},{x:905,y:195}
+      {x:305,y:395},{x:505,y:355},{x:205,y:275},{x:455,y:295},{x:705,y:335},{x:355,y:175},{x:655,y:215}
     ]
   }
 ];
@@ -441,6 +433,7 @@ function loadLevel(idx){
   let base=LEVEL_BASES[idx];
   levelData={
     name:base.name,
+    isBoss:base.isBoss,
     bg:base.bg,
     platforms:base.platforms,
     goal:base.goal
@@ -449,6 +442,18 @@ function loadLevel(idx){
   resetPlayer();
   cameraX=0;
   initBackgroundElements();
+  
+  if(base.isBoss){
+    boss.health=5;
+    boss.maxHealth=5;
+    boss.x=700;
+    boss.y=150;
+    boss.jumpTimer=0;
+    boss.attackTimer=0;
+    boss.pattern=0;
+    boss.projectiles=[];
+    state=STATES.BOSS;
+  }
 }
 
 function resetPlayer(){
@@ -674,6 +679,7 @@ function drawPlatform(plat){
 
 // ---- DRAW GOAL FLAG ----
 function drawGoal(){
+  if(levelData.isBoss)return;
   let g=levelData.goal;
   let gx=g.x-cameraX,gy=g.y;
   let pulse=0.7+0.3*Math.sin(frameCount*0.08);
@@ -819,9 +825,149 @@ function drawPlayer(){
   if(p.jumpAnim>0)p.jumpAnim--;
 }
 
+// ---- DRAW BOSS ----
+function drawBoss(){
+  let bx=Math.round(boss.x-cameraX),by=Math.round(boss.y);
+  let blink=boss.health<=1&&Math.floor(frameCount/8)%2===0;
+  if(blink){ctx.globalAlpha=0.3;}
+  
+  ctx.fillStyle='#ff3333';
+  ctx.fillRect(bx,by,boss.w,boss.h);
+  
+  ctx.fillStyle='#ffff00';
+  ctx.fillRect(bx+8,by+8,10,10);
+  ctx.fillRect(bx+32,by+8,10,10);
+  
+  let angleX=Math.atan2(p.y-by,p.x-bx);
+  ctx.fillStyle='#000';
+  ctx.fillRect(bx+12+Math.cos(angleX)*3,by+10+Math.sin(angleX)*3,4,4);
+  ctx.fillRect(bx+36+Math.cos(angleX)*3,by+10+Math.sin(angleX)*3,4,4);
+  
+  ctx.fillStyle='#000';
+  ctx.fillRect(bx+12,by+32,26,6);
+  
+  ctx.fillStyle='#8b0000';
+  ctx.fillRect(bx+5,by-8,8,12);
+  ctx.fillRect(bx+37,by-8,8,12);
+  
+  let healthPercent=boss.health/boss.maxHealth;
+  ctx.globalAlpha=0.6;
+  ctx.fillStyle=healthPercent>0.5?'#00ff00':healthPercent>0.25?'#ffff00':'#ff0000';
+  ctx.beginPath();
+  ctx.arc(bx+boss.w/2,by+boss.h/2,boss.w/2+10,0,Math.PI*2);
+  ctx.fill();
+  
+  ctx.globalAlpha=1;
+  
+  boss.projectiles.forEach(proj=>{
+    let projX=proj.x-cameraX;
+    ctx.fillStyle='#ff6633';
+    ctx.beginPath();
+    ctx.arc(projX,proj.y,6,0,Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle='#ffaa66';
+    ctx.beginPath();
+    ctx.arc(projX,proj.y,3,0,Math.PI*2);
+    ctx.fill();
+  });
+}
+
+// ---- BOSS AI ----
+function updateBoss(){
+  if(state!==STATES.BOSS)return;
+  
+  boss.jumpTimer--;
+  boss.attackTimer--;
+  
+  let distToPlayer=Math.abs(boss.x-p.x);
+  
+  if(boss.jumpTimer<=0){
+    boss.vy=JUMP*0.9;
+    boss.jumpTimer=60;
+  }
+  
+  boss.vy+=GRAV;
+  boss.x+=boss.vx;
+  boss.y+=boss.vy;
+  
+  if(boss.y>GAME_H){
+    boss.y=300;
+  }
+  
+  if(boss.attackTimer<=0){
+    boss.pattern=(boss.pattern+1)%3;
+    boss.attackTimer=45;
+    
+    if(boss.pattern===0){
+      let angle=Math.atan2(p.y-boss.y,p.x-boss.x);
+      boss.projectiles.push({
+        x:boss.x+25,y:boss.y+25,
+        vx:Math.cos(angle)*4,vy:Math.sin(angle)*4
+      });
+    } else if(boss.pattern===1){
+      for(let i=-1;i<=1;i++){
+        boss.projectiles.push({
+          x:boss.x+25,y:boss.y+25,
+          vx:i*2,vy:-3
+        });
+      }
+    }
+  }
+  
+  if(distToPlayer>200){
+    boss.vx=2;
+  } else if(distToPlayer<100){
+    boss.vx=-1;
+  } else {
+    boss.vx=0;
+  }
+  
+  boss.projectiles=boss.projectiles.filter(proj=>{
+    proj.x+=proj.vx;
+    proj.y+=proj.vy;
+    proj.vy+=0.2;
+    
+    if(rect(p.x,p.y,p.w,p.h,proj.x-6,proj.y-6,12,12)){
+      if(p.shield>0){
+        p.shield=0;
+        spawnParticles(proj.x,proj.y,'#aa88ff',12,3);
+      } else {
+        p.lives--;
+        spawnParticles(p.x+14,p.y-20,'#ff3b3b',20,6);
+        if(p.lives<=0){
+          state=STATES.GAMEOVER;
+        } else {
+          resetPlayer();
+        }
+      }
+      return false;
+    }
+    
+    return proj.y<GAME_H+60;
+  });
+  
+  if(p.vy<0&&rect(p.x,p.y,p.w,p.h,boss.x,boss.y,boss.w,boss.h)){
+    boss.health--;
+    spawnParticles(boss.x+25,boss.y+25,'#ff0000',20,5);
+    spawnText(boss.x,boss.y-30,'HIT!','#ffff00');
+    p.vy=-10;
+    p.jumpAnim=8;
+    
+    if(boss.health<=0){
+      spawnParticles(boss.x+25,boss.y+25,'#ffff00',40,8);
+      nextLevel();
+    }
+  }
+  
+  cameraX=clamp(boss.x-300,0,3000);
+}
+
 // ---- PHYSICS ----
 function updatePlayer(){
-  if(state!==STATES.PLAY)return;
+  if(state===STATES.BOSS){
+    updateBoss();
+  }
+  if(state!==STATES.PLAY&&state!==STATES.BOSS)return;
 
   let spd=SPD*(1+(p.speedBoost>0?0.8:0));
   
@@ -847,51 +993,53 @@ function updatePlayer(){
   if(p.speedBoost>0)p.speedBoost--;
   if(p.shield>0)p.shield--;
 
-  p.onGround=false;
-  levelData.platforms.forEach(plat=>{
-    if(rect(p.x,p.y,p.w,p.h,plat.x,plat.y,plat.w,plat.h)){
-      if(p.vy>0&&p.y+p.h-p.vy<=plat.y+4){
-        p.y=plat.y-p.h;p.vy=0;p.onGround=true;p.hasDoubleJump=true;
-        if(plat.t==='pipe'){
-          let g=levelData.goal;
-          if(rect(p.x,p.y,p.w,p.h,g.x,g.y,g.w,g.h)||p.x+p.w>plat.x+6){
-            nextLevel();return;
+  if(state===STATES.PLAY){
+    p.onGround=false;
+    levelData.platforms.forEach(plat=>{
+      if(rect(p.x,p.y,p.w,p.h,plat.x,plat.y,plat.w,plat.h)){
+        if(p.vy>0&&p.y+p.h-p.vy<=plat.y+4){
+          p.y=plat.y-p.h;p.vy=0;p.onGround=true;p.hasDoubleJump=true;
+          if(plat.t==='pipe'){
+            let g=levelData.goal;
+            if(rect(p.x,p.y,p.w,p.h,g.x,g.y,g.w,g.h)||p.x+p.w>plat.x+6){
+              nextLevel();return;
+            }
           }
         }
+        else if(p.vx>0&&p.x+p.w-p.vx<=plat.x){p.x=plat.x-p.w;p.vx=0;}
+        else if(p.vx<0&&p.x-p.vx>=plat.x+plat.w){p.x=plat.x+plat.w;p.vx=0;}
+        else if(p.vy<0){p.vy=0;}
       }
-      else if(p.vx>0&&p.x+p.w-p.vx<=plat.x){p.x=plat.x-p.w;p.vx=0;}
-      else if(p.vx<0&&p.x-p.vx>=plat.x+plat.w){p.x=plat.x+plat.w;p.vx=0;}
-      else if(p.vy<0){p.vy=0;}
+    });
+
+    let g=levelData.goal;
+    if(rect(p.x,p.y,p.w,p.h,g.x,g.y,g.w+60,g.h+60)){
+      nextLevel();
     }
-  });
 
-  let g=levelData.goal;
-  if(rect(p.x,p.y,p.w,p.h,g.x,g.y,g.w+60,g.h+60)){
-    nextLevel();
-  }
+    powerupsInLevel.forEach(pu=>{
+      if(pu.collected)return;
+      if(rect(p.x,p.y,p.w,p.h,pu.x,pu.y,24,24)){
+        pu.collected=true;
+        let def=POWERUPS[pu.type];
+        if(pu.type==='SPEED'){p.speedBoost=def.duration;}
+        else if(pu.type==='JUMP'){p.hasDoubleJump=true;p.doubleJump=true;}
+        else if(pu.type==='SHIELD'){p.shield=def.duration;}
+        spawnParticles(pu.x+12,pu.y+12,def.color,16,5);
+        spawnText(pu.x,pu.y-10,def.label+'!',def.color);
+      }
+    });
 
-  powerupsInLevel.forEach(pu=>{
-    if(pu.collected)return;
-    if(rect(p.x,p.y,p.w,p.h,pu.x,pu.y,24,24)){
-      pu.collected=true;
-      let def=POWERUPS[pu.type];
-      if(pu.type==='SPEED'){p.speedBoost=def.duration;}
-      else if(pu.type==='JUMP'){p.hasDoubleJump=true;p.doubleJump=true;}
-      else if(pu.type==='SHIELD'){p.shield=def.duration;}
-      spawnParticles(pu.x+12,pu.y+12,def.color,16,5);
-      spawnText(pu.x,pu.y-10,def.label+'!',def.color);
+    if(p.y>GAME_H+60){
+      if(p.shield>0){p.shield=0;p.invincible=80;p.y=300;p.vy=-8;spawnText(p.x,p.y-20,'SHIELD SAVED!','#aa88ff');return;}
+      p.lives--;
+      spawnParticles(p.x+14,p.y-20,'#ff3b3b',20,6);
+      if(p.lives<=0){state=STATES.GAMEOVER;}
+      else{resetPlayer();}
     }
-  });
 
-  if(p.y>GAME_H+60){
-    if(p.shield>0){p.shield=0;p.invincible=80;p.y=300;p.vy=-8;spawnText(p.x,p.y-20,'SHIELD SAVED!','#aa88ff');return;}
-    p.lives--;
-    spawnParticles(p.x+14,p.y-20,'#ff3b3b',20,6);
-    if(p.lives<=0){state=STATES.GAMEOVER;}
-    else{resetPlayer();}
+    cameraX=clamp(p.x-200,0,3000);
   }
-
-  cameraX=clamp(p.x-200,0,3000);
 }
 
 function nextLevel(){
@@ -919,7 +1067,7 @@ document.addEventListener('keydown',e=>{
     gameResetCount++;
     state=STATES.MENU;
   }
-  if(state===STATES.PLAY){
+  if((state===STATES.PLAY||state===STATES.BOSS)){
     if(e.key===' '||e.key==='ArrowUp'||e.key==='w'||e.key==='W'){
       if(p.onGround){
         p.vy=JUMP;
@@ -964,8 +1112,24 @@ function drawHUD(){
     }
   }
 
-  let levelText='LEVEL '+(currentLevel+1)+'/'+LEVEL_BASES.length+' - '+levelData.name;
-  drawPixelText(levelText,GAME_W/2,padding+4,14,COLORS.textGold,'center');
+  let levelText=levelData.isBoss?'BOSS LEVEL - '+levelData.name:'LEVEL '+(currentLevel+1)+'/'+LEVEL_BASES.length+' - '+levelData.name;
+  drawPixelText(levelText,GAME_W/2,padding+4,14,levelData.isBoss?'#ff0000':COLORS.textGold,'center');
+
+  if(levelData.isBoss){
+    let healthBarW=200;
+    let healthBarX=GAME_W/2-healthBarW/2;
+    let healthBarY=padding+30;
+    
+    ctx.fillStyle='#333';
+    ctx.fillRect(healthBarX,healthBarY,healthBarW,20);
+    ctx.fillStyle=boss.health>2?'#00ff00':boss.health>1?'#ffff00':'#ff0000';
+    ctx.fillRect(healthBarX,healthBarY,healthBarW*(boss.health/boss.maxHealth),20);
+    ctx.strokeStyle='#fff';
+    ctx.lineWidth=1;
+    ctx.strokeRect(healthBarX,healthBarY,healthBarW,20);
+    
+    drawPixelText('BOSS HEALTH: '+boss.health+'/'+boss.maxHealth,GAME_W/2,healthBarY+25,12,'#ffffff','center');
+  }
 
   let icons=[];
   if(p.speedBoost>0)icons.push({label:'SPD',color:'#ffcc00',bar:p.speedBoost/POWERUPS.SPEED.duration});
@@ -1049,7 +1213,7 @@ function drawMenu(){
   let instructY=centerY+50;
   drawPixelText('[ ENTER ] to Start',GAME_W/2,instructY,16,'#7dd400','center');
   drawPixelText('ARROWS/WASD: Move   SPACE/W: Jump',GAME_W/2,instructY+24,13,'#87ceeb','center');
-  drawPixelText('7 Challenging Levels - Power-ups spawn randomly!',GAME_W/2,instructY+42,13,COLORS.textCyan,'center');
+  drawPixelText('5 Levels + EPIC BOSS BATTLE!',GAME_W/2,instructY+42,13,COLORS.textCyan,'center');
   drawPixelText('Press ESC to return to menu',GAME_W/2,instructY+60,12,'#87ceeb','center');
 
   let pvs=Object.entries(POWERUPS);
@@ -1103,7 +1267,7 @@ function drawGameOver(){
 function drawWin(){
   drawBackground();
   
-  for(let i=0;i<20;i++){
+  for(let i=0;i<30;i++){
     ctx.fillStyle=['#ffff00','#ff6b35','#00ffff','#7dd400'][i%4];
     ctx.fillRect(
       (Math.sin(frameCount*0.05+i*1.3)*160+GAME_W/2+i*16)%GAME_W,
@@ -1113,13 +1277,13 @@ function drawWin(){
   
   let centerY=GAME_H/2;
   ctx.fillStyle='#000b';
-  ctx.fillRect(GAME_W/2-190,centerY-90,380,150);
+  ctx.fillRect(GAME_W/2-220,centerY-90,440,150);
   ctx.strokeStyle=COLORS.textGold;
   ctx.lineWidth=2;
-  ctx.strokeRect(GAME_W/2-190,centerY-90,380,150);
+  ctx.strokeRect(GAME_W/2-220,centerY-90,440,150);
   
   drawPixelText('YOU WIN!',GAME_W/2,centerY-55,40,COLORS.textGold,'center');
-  drawPixelText('ALL 7 LEVELS COMPLETED!',GAME_W/2,centerY-8,18,COLORS.textCyan,'center');
+  drawPixelText('DEFEATED THE DARK OVERLORD!',GAME_W/2,centerY-8,16,COLORS.textCyan,'center');
   drawPixelText('[ ENTER ] for Menu',GAME_W/2,centerY+40,16,'#fff','center');
 }
 
@@ -1135,8 +1299,15 @@ function loop(){
     updatePlayer();
     drawBackground();
     levelData.platforms.forEach(pl=>drawPlatform(pl));
-    powerupsInLevel.forEach(pu=>drawPowerup(pu));
-    drawGoal();
+    
+    if(!levelData.isBoss){
+      powerupsInLevel.forEach(pu=>drawPowerup(pu));
+      drawGoal();
+    } else {
+      drawBoss();
+      powerupsInLevel.forEach(pu=>drawPowerup(pu));
+    }
+    
     drawPlayer();
     updateParticles();
     drawHUD();
